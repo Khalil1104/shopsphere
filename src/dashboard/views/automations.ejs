@@ -1,0 +1,61 @@
+<header class="page-head">
+  <div>
+    <h1>Automations</h1>
+  </div>
+</header>
+
+<section class="auto-grid">
+  <% tasks.forEach((t) => { %>
+    <article class="panel auto<%= t.enabled ? ' on' : '' %>">
+      <header>
+        <span class="auto-ic"><svg class="ic"><use href="#i-<%= t.type === 'trigger' ? 'alert' : t.key === 'daily-report' ? 'mail' : t.key === 'cleanup-unverified' ? 'trash' : 'clock' %>"/></svg></span>
+        <form method="post" action="/admin/automations/<%= t.key %>/toggle">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input type="hidden" name="enabled" value="<%= t.enabled ? 'false' : 'true' %>">
+          <button class="toggle<%= t.enabled ? ' on' : '' %>" role="switch" aria-checked="<%= t.enabled %>" title="<%= t.enabled ? 'Désactiver' : 'Activer' %>"><i></i><span><%= t.enabled ? 'Activée' : 'Désactivée' %></span></button>
+        </form>
+      </header>
+      <h2><%= t.name %></h2>
+      <p class="muted"><%= t.description %></p>
+      <dl class="facts mini">
+        <div><dt>Quand</dt><dd><%= t.schedule %></dd></div>
+        <div><dt>Dernière exécution</dt><dd><%= t.lastRun ? h.ago(t.lastRun.startedAt) : 'jamais' %></dd></div>
+      </dl>
+      <% if (t.lastRun) { %><p class="last-run <%= t.lastRun.status %>"><svg class="ic"><use href="#i-<%= t.lastRun.status === 'success' ? 'check' : 'alert' %>"/></svg><%= t.lastRun.summary %></p><% } %>
+      <footer>
+        <% if (t.type === 'daily') { %>
+          <form method="post" action="/admin/automations/<%= t.key %>/run" <%- t.key === 'cleanup-unverified' ? 'data-confirm="Supprimer maintenant"' : '' %>>
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <button class="btn ghost sm"><svg class="ic"><use href="#i-play"/></svg>Lancer maintenant</button>
+          </form>
+        <% } else { %>
+          <span class="chip">Automatique</span>
+        <% } %>
+      </footer>
+    </article>
+  <% }) %>
+</section>
+
+<section class="panel table-panel">
+  <header class="panel-head"><div><h2>Historique</h2></div></header>
+  <% if (!history.length) { %>
+    <div class="empty sm"><svg class="ic"><use href="#i-clock"/></svg><p>Aucune exécution.</p></div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Date</th><th>Automation</th><th>Lancée par</th><th>Résultat</th><th>Durée</th></tr></thead>
+      <tbody>
+        <% history.forEach((r) => { %>
+          <tr>
+            <td class="muted"><%= h.dateTime(r.startedAt) %></td>
+            <td><b><%= r.name %></b></td>
+            <td><%= r.by %></td>
+            <td><span class="chip <%= r.status === 'success' ? 'ok' : 'danger' %>"><%= r.status === 'success' ? 'Réussi' : 'Échec' %></span> <%= r.summary %></td>
+            <td class="mono muted"><%= r.durationMs %> ms</td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>

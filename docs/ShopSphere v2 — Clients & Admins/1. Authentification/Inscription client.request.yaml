@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Envoie 2 e-mails : bienvenue + lien de vérification. Mettez votre vraie adresse dans la variable clientEmail."
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Sami",
+      "lastName": "Ben Ali",
+      "email": "{{clientEmail}}",
+      "password": "Shop2026Pass",
+      "confirmPassword": "Shop2026Pass",
+      "phone": "+21622123456",
+      "cin": "{{clientCin}}",
+      "city": "Tunis"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Statut 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('clientId', pm.response.json().client.id);
+    language: text/javascript
+order: 2000

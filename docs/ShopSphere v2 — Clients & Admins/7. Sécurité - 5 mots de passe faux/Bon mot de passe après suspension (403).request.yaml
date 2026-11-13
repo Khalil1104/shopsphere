@@ -1,0 +1,14 @@
+$kind: http-request
+description: "Après 5 échecs : 403 même avec le bon mot de passe. Réactivation : bouton de l'e-mail, ou requête suivante (admin)."
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{clientEmail}}",
+      "password": "Shop2026Pass"
+    }
+order: 2000

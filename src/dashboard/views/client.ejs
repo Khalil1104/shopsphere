@@ -1,0 +1,92 @@
+<%
+  const u = client;
+  const suspended = u.accountStatus === 'SUSPENDED';
+  const dob = u.dateOfBirth ? new Date(u.dateOfBirth).toISOString().slice(0, 10) : '';
+%>
+<a class="back" href="/admin/clients"><svg class="ic"><use href="#i-back"/></svg>Clients</a>
+
+<header class="profile-head panel">
+  <span class="avatar xl <%= h.tone(u) %>"><%= h.initials(u) %></span>
+  <div class="profile-id">
+    <h1><%= u.firstName %> <%= u.lastName %></h1>
+    <p class="muted"><%= u.email %> · client depuis le <%= h.date(u.createdAt) %></p>
+    <div class="chips">
+      <% if (suspended) { %><span class="chip danger"><%= u.suspendedForFailedLogins ? 'Suspendu · 5 échecs' : 'Suspendu' %></span><% } else { %><span class="chip ok">Actif</span><% } %>
+      <% if (u.isEmailVerified) { %><span class="chip ok">Adresse vérifiée</span><% } else { %><span class="chip warn">Adresse non vérifiée</span><% } %>
+      <span class="chip"><%= h.plural(sessions.length, 'appareil connecté', 'appareils connectés') %></span>
+    </div>
+  </div>
+  <div class="profile-actions">
+    <% if (!u.isEmailVerified) { %>
+      <form method="post" action="/admin/clients/<%= u.id %>/resend"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost"><svg class="ic"><use href="#i-mail"/></svg>Renvoyer le lien</button></form>
+    <% } %>
+    <% if (suspended) { %>
+      <form method="post" action="/admin/clients/<%= u.id %>/status"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="ACTIVE"><button class="btn primary"><svg class="ic"><use href="#i-play"/></svg>Réactiver</button></form>
+    <% } else { %>
+      <button class="btn ghost danger-text" data-open="suspend-<%= u.id %>"><svg class="ic"><use href="#i-pause"/></svg>Suspendre</button>
+    <% } %>
+  </div>
+</header>
+
+<% if (!suspended) { %>
+<form class="panel inline-form" id="suspend-<%= u.id %>" hidden method="post" action="/admin/clients/<%= u.id %>/status">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="status" value="SUSPENDED">
+  <label>Motif
+    <input name="reason" maxlength="300" placeholder="Ex. vérification de sécurité en cours" required>
+  </label>
+  <div class="form-actions"><button type="button" class="btn ghost" data-close="suspend-<%= u.id %>">Annuler</button><button class="btn danger">Suspendre et prévenir</button></div>
+</form>
+<% } %>
+
+<% if (suspended && u.statusReason) { %>
+  <div class="alert <%= u.suspendedForFailedLogins ? 'warn' : 'error' %>"><b>Motif :</b> <%= u.statusReason %></div>
+<% } %>
+
+<section class="grid-detail">
+  <form class="panel form" method="post" action="/admin/clients/<%= u.id %>">
+    <header class="panel-head"><div><h2>Informations</h2></div></header>
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="fields two">
+      <label>Prénom<input name="firstName" value="<%= u.firstName %>" required></label>
+      <label>Nom<input name="lastName" value="<%= u.lastName %>" required></label>
+      <label>E-mail<input type="email" name="email" value="<%= u.email %>" required></label>
+      <label>Téléphone<input name="phone" value="<%= u.phone || '' %>" placeholder="+216..."></label>
+      <label>CIN<input name="cin" value="<%= u.cin %>" pattern="[0-9]{8}" maxlength="8" required></label>
+      <label>Date de naissance<input type="date" name="dateOfBirth" value="<%= dob %>"></label>
+      <label>Ville<input name="city" value="<%= u.city || '' %>"></label>
+      <label>Adresse<input name="address" value="<%= u.address || '' %>"></label>
+    </div>
+    <div class="form-actions"><button class="btn primary">Enregistrer</button></div>
+  </form>
+
+  <div class="stack">
+    <article class="panel">
+      <header class="panel-head"><div><h2>Sécurité</h2></div></header>
+      <dl class="facts">
+        <div><dt>Dernière connexion</dt><dd><%= h.dateTime(u.lastLoginAt) %></dd></div>
+        <div><dt>Mots de passe faux (en cours)</dt><dd><%= u.failedLoginAttempts || 0 %> / 5</dd></div>
+        <div><dt>Compte créé</dt><dd><%= h.dateTime(u.createdAt) %></dd></div>
+        <div><dt>Dernière modification</dt><dd><%= h.dateTime(u.updatedAt) %></dd></div>
+      </dl>
+    </article>
+
+    <article class="panel">
+      <header class="panel-head">
+        <div><h2>Appareils connectés</h2></div>
+        <% if (sessions.length) { %>
+          <form method="post" action="/admin/clients/<%= u.id %>/sessions/delete-all"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost xs">Tout déconnecter</button></form>
+        <% } %>
+      </header>
+      <%- include('partials/sessions', { sessions, base: `/admin/clients/${u.id}/sessions` }) %>
+    </article>
+
+    <article class="panel danger-zone">
+      <header class="panel-head"><div><h2>Supprimer le compte</h2></div></header>
+      <form method="post" action="/admin/clients/<%= u.id %>/delete" data-confirm="Supprimer définitivement">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="btn danger"><svg class="ic"><use href="#i-trash"/></svg>Supprimer</button>
+      </form>
+    </article>
+  </div>
+</section>

@@ -1,0 +1,3 @@
+$kind: collection
+description: 'Les sessions sont enregistrées dans le document du client (tableau "sessions") : pas de collection en plus.'
+order: 5000

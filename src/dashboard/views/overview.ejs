@@ -1,0 +1,131 @@
+<%
+  const c = stats.clients;
+  const now = new Date(Date.now() + 3600 * 1000);
+  const hour = now.getUTCHours();
+  const hello = hour < 5 ? 'Bonsoir' : hour < 18 ? 'Bonjour' : 'Bonsoir';
+  const weekDays = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  const weekCounts = week.map((d) => d.count);
+  const prevWeekNote = c.newToday ? `+${c.newToday} aujourd'hui` : "Aucune aujourd'hui";
+  const maxCity = Math.max(1, ...stats.topCities.map((t) => t.count));
+%>
+<header class="page-head">
+  <div>
+    <h1><%= hello %>, <%= me.firstName %></h1>
+    <p class="muted"><%= weekDays[now.getUTCDay()] %> <%= h.date(new Date()) %></p>
+  </div>
+  <div class="head-actions">
+    <a class="btn ghost" href="/admin/automations"><svg class="ic"><use href="#i-bolt"/></svg>Automations</a>
+    <a class="btn primary" href="/admin/clients/new"><svg class="ic"><use href="#i-plus"/></svg>Nouveau client</a>
+  </div>
+</header>
+
+<section class="kpis">
+  <article class="kpi">
+    <header><span>Clients</span><svg class="ic"><use href="#i-users"/></svg></header>
+    <strong><%= c.total %></strong>
+    <footer><span class="delta <%= c.newToday ? 'up' : '' %>"><%= prevWeekNote %></span><%- charts.sparkline(weekCounts) %></footer>
+  </article>
+  <article class="kpi">
+    <header><span>Adresses vérifiées</span><svg class="ic"><use href="#i-check"/></svg></header>
+    <strong><%= c.verifiedRate %><small>%</small></strong>
+    <footer><span class="muted"><%= c.verified %> sur <%= c.total %></span><span class="meter"><i style="width:<%= c.verifiedRate %>%"></i></span></footer>
+  </article>
+  <article class="kpi">
+    <header><span>Sessions actives</span><svg class="ic"><use href="#i-device"/></svg></header>
+    <strong><%= stats.sessions.active %></strong>
+    <footer><span class="muted"><%= stats.sessions.clients %> clients · <%= stats.sessions.admins %> admins</span></footer>
+  </article>
+  <article class="kpi">
+    <header><span>Connexions aujourd'hui</span><svg class="ic"><use href="#i-clock"/></svg></header>
+    <strong><%= stats.loginsToday.clients + stats.loginsToday.admins %></strong>
+    <footer><span class="muted"><%= stats.loginsToday.clients %> clients · <%= stats.loginsToday.admins %> admins</span></footer>
+  </article>
+</section>
+
+<section class="grid-main">
+  <article class="panel chart-panel">
+    <header class="panel-head">
+      <div>
+        <h2>Inscriptions</h2>
+        <p class="muted"><%= stats.registrationsPerDay.reduce((s, d) => s + d.count, 0) %> sur les <%= days %> derniers jours</p>
+      </div>
+      <nav class="seg" aria-label="Période">
+        <a href="/admin?range=7" class="<%= days === 7 ? 'on' : '' %>">7 jours</a>
+        <a href="/admin?range=30" class="<%= days === 30 ? 'on' : '' %>">30 jours</a>
+      </nav>
+    </header>
+    <%- charts.areaChart(stats.registrationsPerDay) %>
+  </article>
+
+  <article class="panel goal">
+    <header class="panel-head"><div><h2>Santé des comptes</h2></div></header>
+    <div class="goal-body">
+      <div class="ring-wrap"><%- charts.ring(c.verifiedRate) %><span><b><%= c.verifiedRate %>%</b><small>vérifiés</small></span></div>
+      <dl class="split">
+        <div><dt><i class="dot ok"></i>Vérifiés</dt><dd><%= c.verified %></dd></div>
+        <div><dt><i class="dot warn"></i>En attente</dt><dd><%= nav.unverified %></dd></div>
+        <div><dt><i class="dot danger"></i>Suspendus</dt><dd><%= c.suspended %></dd></div>
+        <div><dt><i class="dot muted"></i>Dont 5 échecs</dt><dd><%= c.suspendedForFailedLogins %></dd></div>
+      </dl>
+    </div>
+  </article>
+</section>
+
+<section class="grid-3">
+  <article class="panel">
+    <header class="panel-head"><div><h2>À traiter</h2></div><a class="link" href="/admin/clients/board">Tableau <svg class="ic"><use href="#i-arrow"/></svg></a></header>
+    <% if (!toWatch.length && !staleUnverified.length) { %>
+      <div class="empty sm"><svg class="ic"><use href="#i-check"/></svg><p>Rien à traiter.</p></div>
+    <% } %>
+    <ul class="rows">
+      <% toWatch.forEach((u) => { %>
+        <li><a href="/admin/clients/<%= u.id %>">
+          <span class="avatar sm <%= h.tone(u) %>"><%= h.initials(u) %></span>
+          <span class="row-text"><b><%= u.firstName %> <%= u.lastName %></b><small><%= u.statusReason || 'Suspendu' %></small></span>
+          <span class="chip danger">Suspendu</span>
+        </a></li>
+      <% }) %>
+      <% staleUnverified.forEach((u) => { %>
+        <li><a href="/admin/clients/<%= u.id %>">
+          <span class="avatar sm <%= h.tone(u) %>"><%= h.initials(u) %></span>
+          <span class="row-text"><b><%= u.firstName %> <%= u.lastName %></b><small>Inscrit <%= h.ago(u.createdAt) %></small></span>
+          <span class="chip warn">En attente</span>
+        </a></li>
+      <% }) %>
+    </ul>
+  </article>
+
+  <article class="panel">
+    <header class="panel-head"><div><h2>Dernières inscriptions</h2><p class="muted"><%= c.newLast7Days %> cette semaine</p></div><a class="link" href="/admin/clients">Tous <svg class="ic"><use href="#i-arrow"/></svg></a></header>
+    <% if (!recent.length) { %><div class="empty sm"><p>Aucun client pour l'instant.</p></div><% } %>
+    <ul class="rows">
+      <% recent.forEach((u) => { %>
+        <li><a href="/admin/clients/<%= u.id %>">
+          <span class="avatar sm <%= h.tone(u) %>"><%= h.initials(u) %></span>
+          <span class="row-text"><b><%= u.firstName %> <%= u.lastName %></b><small><%= u.city || u.email %></small></span>
+          <time class="muted"><%= h.ago(u.createdAt) %></time>
+        </a></li>
+      <% }) %>
+    </ul>
+  </article>
+
+  <div class="stack">
+    <article class="panel">
+      <header class="panel-head"><div><h2>Villes</h2></div></header>
+      <% if (!stats.topCities.length) { %><div class="empty sm"><p>Aucune ville renseignée.</p></div><% } %>
+      <ul class="bars">
+        <% stats.topCities.forEach((t) => { %>
+          <li><span><svg class="ic"><use href="#i-pin"/></svg><%= t.city %></span><i style="--w:<%= Math.round((t.count / maxCity) * 100) %>%"></i><b><%= t.count %></b></li>
+        <% }) %>
+      </ul>
+    </article>
+    <article class="panel">
+      <header class="panel-head"><div><h2>Automations</h2><p class="muted"><%= tasks.filter((t) => t.enabled).length %> actives sur <%= tasks.length %></p></div><a class="link" href="/admin/automations">Gérer <svg class="ic"><use href="#i-arrow"/></svg></a></header>
+      <ul class="rows compact">
+        <% tasks.forEach((t) => { %>
+          <li><span class="status-dot <%= t.enabled ? 'on' : '' %>"></span><span class="row-text"><b><%= t.name %></b><small><%= t.lastRun ? `${t.lastRun.summary} · ${h.ago(t.lastRun.startedAt)}` : t.schedule %></small></span></li>
+        <% }) %>
+      </ul>
+    </article>
+  </div>
+</section>

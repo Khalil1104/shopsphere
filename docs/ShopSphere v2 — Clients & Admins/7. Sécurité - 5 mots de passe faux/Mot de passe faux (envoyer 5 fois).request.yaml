@@ -1,0 +1,18 @@
+$kind: http-request
+description: "Cliquez Send 5 fois. Les 4 premières : 401. La 5e : 403 ACCOUNT_SUSPENDED + e-mail « Compte suspendu » avec un bouton pour réactiver le compte."
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{clientEmail}}",
+      "password": "Mauvais123"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('401 (faux) ou 403 (compte suspendu au 5e essai)', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));
+    language: text/javascript
+order: 1000

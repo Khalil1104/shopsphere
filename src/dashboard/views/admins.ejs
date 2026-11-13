@@ -1,0 +1,26 @@
+<header class="page-head">
+  <div>
+    <h1>Administrateurs</h1>
+    <p class="muted"><%= h.plural(items.length, 'compte', 'comptes') %></p>
+  </div>
+  <div class="head-actions"><a class="btn primary" href="/admin/admins/new"><svg class="ic"><use href="#i-plus"/></svg>Nouvel administrateur</a></div>
+</header>
+
+<section class="admin-grid">
+  <% items.forEach((a) => {
+       const active = (a.sessions || []).filter((s) => s.expiresAt > new Date()).length;
+       const isMe = String(a._id) === String(me._id); %>
+    <a class="panel admin-card" href="/admin/admins/<%= a.id %>">
+      <header>
+        <span class="avatar lg <%= h.tone(a) %>"><%= h.initials(a) %></span>
+        <% if (a.accountStatus === 'SUSPENDED') { %><span class="chip danger">Suspendu</span><% } else if (isMe) { %><span class="chip">Vous</span><% } else { %><span class="chip ok">Actif</span><% } %>
+      </header>
+      <b><%= a.firstName %> <%= a.lastName %></b>
+      <small class="muted"><%= a.email %></small>
+      <dl class="facts mini">
+        <div><dt>Connexion</dt><dd><%= h.ago(a.lastLoginAt) %></dd></div>
+        <div><dt>Appareils</dt><dd><%= active %></dd></div>
+      </dl>
+    </a>
+  <% }) %>
+</section>

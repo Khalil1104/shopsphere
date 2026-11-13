@@ -1,0 +1,12 @@
+<header class="page-head">
+  <div>
+    <h1><%= section.title %></h1>
+  </div>
+</header>
+<section class="panel soon-panel">
+  <div class="empty">
+    <svg class="ic"><use href="#i-<%= { orders: 'bag', products: 'box', categories: 'tag', payments: 'card', inventory: 'stack' }[key] %>"/></svg>
+    <h3>Bientôt disponible</h3>
+    <a class="btn ghost" href="/admin">Retour à la vue d'ensemble</a>
+  </div>
+</section>

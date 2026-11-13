@@ -1,0 +1,9 @@
+$kind: http-request
+description: "Le plus simple : cliquez sur le bouton dans l'e-mail. Sinon copiez le token du lien dans la variable verifyToken."
+url: "{{baseUrl}}/api/auth/verify-email?token={{verifyToken}}"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  token: "{{verifyToken}}"
+order: 5000

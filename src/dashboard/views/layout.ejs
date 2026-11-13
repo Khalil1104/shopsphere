@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr" data-theme="<%= theme %>">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ShopSphere Admin</title>
+  <link rel="icon" href="/admin/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/admin/assets/app.css">
+  <script src="/admin/assets/app.js" defer></script>
+</head>
+<body>
+<%- include('partials/icons') %>
+<%
+  const link = (href, icon, label, opts = {}) => ({ href, icon, label, ...opts });
+  const groups = [
+    { label: 'Pilotage', items: [ link('/admin', 'home', "Vue d'ensemble", { exact: true }) ] },
+    { label: 'Utilisateurs', items: [
+      link('/admin/clients', 'users', 'Clients', { badge: nav.unverified, badgeTitle: 'Non vérifiés', exactPrefix: true }),
+      link('/admin/clients/board', 'board', 'Tableau des clients', { badge: nav.suspended, badgeTitle: 'Suspendus', tone: 'danger' }),
+      link('/admin/admins', 'shield', 'Administrateurs')
+    ] },
+    { label: 'Boutique', items: [
+      link('/admin/soon/orders', 'bag', 'Commandes', { soon: true }),
+      link('/admin/soon/products', 'box', 'Produits', { soon: true }),
+      link('/admin/soon/categories', 'tag', 'Catégories', { soon: true }),
+      link('/admin/soon/payments', 'card', 'Paiements', { soon: true }),
+      link('/admin/soon/inventory', 'stack', 'Stock', { soon: true })
+    ] },
+    { label: 'Outils', items: [
+      link('/admin/automations', 'bolt', 'Automations', { badge: nav.automationsOn, badgeTitle: 'Actives', tone: 'muted' }),
+      link('/admin/account', 'user', 'Mon compte')
+    ] }
+  ];
+  const full = '/admin' + (path === '/' ? '' : path);
+  const isActive = (it) => it.exact ? full === '/admin' : it.exactPrefix ? (full === it.href || (/^\/admin\/clients\/(new|[a-f0-9]{24})/.test(full))) : full.startsWith(it.href);
+%>
+<div class="shell">
+  <aside class="side" id="side">
+    <a class="brand" href="/admin">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="M12 12 4 8.5M12 12l8-3.5M12 12v8"/></svg></span>
+      <span><b>ShopSphere</b><small>Administration</small></span>
+    </a>
+    <form class="side-search" action="/admin/clients" method="get" role="search">
+      <svg class="ic"><use href="#i-search"/></svg>
+      <input name="q" placeholder="Rechercher un client" aria-label="Rechercher un client">
+      <kbd>/</kbd>
+    </form>
+    <nav>
+      <% groups.forEach((g) => { %>
+        <div class="nav-label"><%= g.label %></div>
+        <% g.items.forEach((it) => { %>
+          <a href="<%= it.href %>" class="nav-item<%= isActive(it) ? ' active' : '' %><%= it.soon ? ' soon' : '' %>">
+            <svg class="ic"><use href="#i-<%= it.icon %>"/></svg>
+            <span><%= it.label %></span>
+            <% if (it.soon) { %><em>Bientôt</em><% } else if (it.badge) { %><b class="badge <%= it.tone || '' %>" title="<%= it.badgeTitle %>"><%= it.badge %></b><% } %>
+          </a>
+        <% }) %>
+      <% }) %>
+    </nav>
+    <div class="side-foot">
+      <a class="theme-switch" href="/admin/theme?to=<%= theme === 'dark' ? 'light' : 'dark' %>&back=<%= encodeURIComponent(full) %>">
+        <svg class="ic"><use href="#i-<%= theme === 'dark' ? 'moon' : 'sun' %>"/></svg>
+        <span>Mode sombre</span>
+        <i class="switch<%= theme === 'dark' ? ' on' : '' %>" aria-hidden="true"></i>
+      </a>
+      <div class="me">
+        <span class="avatar <%= h.tone(me) %>"><%= h.initials(me) %></span>
+        <span class="me-text"><b><%= me.firstName %> <%= me.lastName %></b><small><%= me.email %></small></span>
+        <form method="post" action="/admin/logout">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button class="icon-btn" title="Se déconnecter" aria-label="Se déconnecter"><svg class="ic"><use href="#i-logout"/></svg></button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <button class="menu-btn" data-toggle-side aria-label="Menu">☰</button>
+    <% if (typeof flash !== 'undefined' && flash) { %>
+      <div class="toast <%= flash.type %>" role="status" data-toast>
+        <svg class="ic"><use href="#i-<%= flash.type === 'error' ? 'alert' : 'check' %>"/></svg>
+        <span><%= flash.text %></span>
+        <button class="icon-btn" data-dismiss aria-label="Fermer"><svg class="ic"><use href="#i-x"/></svg></button>
+      </div>
+    <% } %>
+    <%- body %>
+  </main>
+</div>
+<div class="toast-zone" id="toastZone" aria-live="polite"></div>
+<meta name="csrf" content="<%= csrf %>">
+</body>
+</html>

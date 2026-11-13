@@ -1,0 +1,31 @@
+$kind: http-request
+description: Un CIN aléatoire de 8 chiffres est généré automatiquement.
+url: "{{baseUrl}}/api/admin/clients"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Amira",
+      "lastName": "Trabelsi",
+      "email": "amira.{{$timestamp}}@example.com",
+      "password": "Shop2026Pass",
+      "cin": "{{randomCin}}",
+      "city": "Sfax"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Statut 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('createdClientId', pm.response.json().client.id);
+    language: text/javascript
+  - type: beforeRequest
+    code: pm.collectionVariables.set('randomCin', String(Math.floor(10000000 + Math.random() * 89999999)));
+    language: text/javascript
+order: 2000

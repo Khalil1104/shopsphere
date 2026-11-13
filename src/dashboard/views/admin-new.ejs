@@ -1,0 +1,18 @@
+<a class="back" href="/admin/admins"><svg class="ic"><use href="#i-back"/></svg>Administrateurs</a>
+<header class="page-head">
+  <div><h1>Nouvel administrateur</h1></div>
+</header>
+
+<form class="panel form narrow" method="post" action="/admin/admins">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="fields two">
+    <label>Prénom<input name="firstName" required autofocus></label>
+    <label>Nom<input name="lastName" required></label>
+    <label>E-mail<input type="email" name="email" required></label>
+    <label>Téléphone<input name="phone"></label>
+    <label class="span-2">Mot de passe provisoire
+      <input type="password" name="password" minlength="8" required autocomplete="new-password">
+    </label>
+  </div>
+  <div class="form-actions"><a class="btn ghost" href="/admin/admins">Annuler</a><button class="btn primary">Créer l'administrateur</button></div>
+</form>

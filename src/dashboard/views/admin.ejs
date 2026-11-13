@@ -1,0 +1,58 @@
+<% const a = admin; const suspended = a.accountStatus === 'SUSPENDED'; %>
+<a class="back" href="/admin/admins"><svg class="ic"><use href="#i-back"/></svg>Administrateurs</a>
+
+<header class="profile-head panel">
+  <span class="avatar xl <%= h.tone(a) %>"><%= h.initials(a) %></span>
+  <div class="profile-id">
+    <h1><%= a.firstName %> <%= a.lastName %></h1>
+    <p class="muted"><%= a.email %> · administrateur depuis le <%= h.date(a.createdAt) %></p>
+    <div class="chips">
+      <% if (suspended) { %><span class="chip danger"><%= a.suspendedForFailedLogins ? 'Suspendu · 5 échecs' : 'Suspendu' %></span><% } else { %><span class="chip ok">Actif</span><% } %>
+      <% if (isMe) { %><span class="chip">C'est vous</span><% } %>
+    </div>
+  </div>
+  <% if (!isMe) { %>
+  <div class="profile-actions">
+    <form method="post" action="/admin/admins/<%= a.id %>/status">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="status" value="<%= suspended ? 'ACTIVE' : 'SUSPENDED' %>">
+      <button class="btn <%= suspended ? 'primary' : 'ghost danger-text' %>"><svg class="ic"><use href="#i-<%= suspended ? 'play' : 'pause' %>"/></svg><%= suspended ? 'Réactiver' : 'Suspendre' %></button>
+    </form>
+  </div>
+  <% } %>
+</header>
+
+<section class="grid-detail">
+  <form class="panel form" method="post" action="/admin/admins/<%= a.id %>">
+    <header class="panel-head"><div><h2>Informations</h2></div></header>
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="fields two">
+      <label>Prénom<input name="firstName" value="<%= a.firstName %>" required></label>
+      <label>Nom<input name="lastName" value="<%= a.lastName %>" required></label>
+      <label>E-mail<input type="email" name="email" value="<%= a.email %>" required></label>
+      <label>Téléphone<input name="phone" value="<%= a.phone || '' %>"></label>
+    </div>
+    <div class="form-actions"><button class="btn primary">Enregistrer</button></div>
+  </form>
+
+  <div class="stack">
+    <article class="panel">
+      <header class="panel-head"><div><h2>Activité</h2></div></header>
+      <dl class="facts">
+        <div><dt>Dernière connexion</dt><dd><%= h.dateTime(a.lastLoginAt) %></dd></div>
+        <div><dt>Appareils connectés</dt><dd><%= sessions.length %></dd></div>
+        <div><dt>Compte créé</dt><dd><%= h.dateTime(a.createdAt) %></dd></div>
+      </dl>
+    </article>
+    <% if (!isMe) { %>
+    <article class="panel danger-zone">
+      <header class="panel-head"><div><h2>Supprimer l'administrateur</h2></div></header>
+      <form method="post" action="/admin/admins/<%= a.id %>/delete" data-confirm="Supprimer définitivement">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="btn danger"><svg class="ic"><use href="#i-trash"/></svg>Supprimer</button>
+      </form>
+    </article>
+    <% } else { %>
+    <% } %>
+  </div>
+</section>

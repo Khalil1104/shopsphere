@@ -1,0 +1,44 @@
+{
+  "name": "shopsphere-user-service",
+  "version": "2.0.0",
+  "private": true,
+  "description": "ShopSphere — Module utilisateurs : clients et admins (CRUD, connexion JWT, e-mails)",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "admin:create": "node scripts/create-admin.js",
+    "test": "jest --runInBand",
+    "demo:seed": "node scripts/seed-demo.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "helmet": "^8.3.0",
+    "joi": "^18.3.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.12.1",
+    "morgan": "^1.10.1",
+    "nodemailer": "^10.4.0"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/tests/env.js"
+    ],
+    "testTimeout": 60000
+  }
+}

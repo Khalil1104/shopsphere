@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/me"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{clientToken2}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Statut 401', () => pm.response.to.have.status(401));
+    language: text/javascript
+order: 4000

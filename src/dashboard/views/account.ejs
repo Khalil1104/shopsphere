@@ -1,0 +1,27 @@
+<header class="page-head">
+  <div>
+    <h1>Mon compte</h1>
+    <p class="muted"><%= me.email %> · connecté <%= h.ago(me.lastLoginAt) %></p>
+  </div>
+</header>
+
+<section class="grid-detail">
+  <form class="panel form" method="post" action="/admin/account">
+    <header class="panel-head"><div><h2>Profil</h2></div></header>
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="fields two">
+      <label>Prénom<input name="firstName" value="<%= me.firstName %>" required></label>
+      <label>Nom<input name="lastName" value="<%= me.lastName %>" required></label>
+      <label class="span-2">Téléphone<input name="phone" value="<%= me.phone || '' %>"></label>
+    </div>
+    <div class="form-actions"><button class="btn primary">Enregistrer</button></div>
+  </form>
+
+  <article class="panel">
+    <header class="panel-head">
+      <div><h2>Mes appareils</h2><p class="muted"><%= h.plural(sessions.length, 'session active', 'sessions actives') %></p></div>
+      <form method="post" action="/admin/account/logout-all"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost xs">Déconnecter partout</button></form>
+    </header>
+    <%- include('partials/sessions', { sessions, base: '/admin/account/sessions', currentSid }) %>
+  </article>
+</section>

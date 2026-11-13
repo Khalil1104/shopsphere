@@ -1,0 +1,22 @@
+<a class="back" href="/admin/clients"><svg class="ic"><use href="#i-back"/></svg>Clients</a>
+<header class="page-head">
+  <div><h1>Nouveau client</h1></div>
+</header>
+
+<form class="panel form narrow" method="post" action="/admin/clients">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="fields two">
+    <label>Prénom<input name="firstName" required autofocus></label>
+    <label>Nom<input name="lastName" required></label>
+    <label>E-mail<input type="email" name="email" required></label>
+    <label>Téléphone<input name="phone" placeholder="+21622123456"></label>
+    <label>CIN<input name="cin" pattern="[0-9]{8}" maxlength="8" placeholder="8 chiffres" required></label>
+    <label>Date de naissance<input type="date" name="dateOfBirth"></label>
+    <label>Ville<input name="city"></label>
+    <label>Adresse<input name="address"></label>
+    <label class="span-2">Mot de passe provisoire
+      <input type="password" name="password" minlength="8" required autocomplete="new-password">
+    </label>
+  </div>
+  <div class="form-actions"><a class="btn ghost" href="/admin/clients">Annuler</a><button class="btn primary">Créer le client</button></div>
+</form>

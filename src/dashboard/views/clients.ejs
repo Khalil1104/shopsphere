@@ -1,0 +1,71 @@
+<%
+  const tabs = [['all', 'Tous', counts.all], ['verified', 'Vérifiés', counts.verified], ['unverified', 'En attente', counts.unverified], ['suspended', 'Suspendus', counts.suspended]];
+  const base = { q, view: view === 'all' ? '' : view, sort: sort === 'recent' ? '' : sort };
+%>
+<header class="page-head">
+  <div>
+    <h1>Clients</h1>
+    <p class="muted"><%= h.plural(counts.all, 'compte', 'comptes') %></p>
+  </div>
+  <div class="head-actions">
+    <a class="btn ghost" href="/admin/clients/board"><svg class="ic"><use href="#i-board"/></svg>Vue tableau</a>
+    <a class="btn primary" href="/admin/clients/new"><svg class="ic"><use href="#i-plus"/></svg>Nouveau client</a>
+  </div>
+</header>
+
+<section class="panel table-panel">
+  <div class="toolbar">
+    <nav class="tabs" aria-label="Filtrer">
+      <% tabs.forEach(([key, label, n]) => { %>
+        <a class="<%= view === key ? 'on' : '' %>" href="<%= h.withQuery('/admin/clients', base, { view: key === 'all' ? '' : key, page: '' }) %>"><%= label %><b><%= n %></b></a>
+      <% }) %>
+    </nav>
+    <form class="filters" method="get" action="/admin/clients">
+      <% if (view !== 'all') { %><input type="hidden" name="view" value="<%= view %>"><% } %>
+      <label class="search-field"><svg class="ic"><use href="#i-search"/></svg><input name="q" value="<%= q %>" placeholder="Nom, e-mail, téléphone, CIN, ville"></label>
+      <select name="sort" aria-label="Trier" data-autosubmit>
+        <option value="recent" <%= sort === 'recent' ? 'selected' : '' %>>Plus récents</option>
+        <option value="name" <%= sort === 'name' ? 'selected' : '' %>>Nom (A→Z)</option>
+        <option value="login" <%= sort === 'login' ? 'selected' : '' %>>Dernière connexion</option>
+      </select>
+      <button class="btn ghost" type="submit">Filtrer</button>
+    </form>
+  </div>
+
+  <% if (!items.length) { %>
+    <div class="empty">
+      <svg class="ic"><use href="#i-users"/></svg>
+      <h3><%= q ? `Aucun résultat pour « ${q} »` : 'Aucun client ici' %></h3>
+      <% if (q || view !== 'all') { %><a class="btn ghost" href="/admin/clients">Effacer les filtres</a><% } %>
+    </div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Client</th><th>Téléphone</th><th>Ville</th><th>Statut</th><th>Inscription</th><th>Dernière connexion</th></tr></thead>
+      <tbody>
+        <% items.forEach((u) => { %>
+          <tr data-href="/admin/clients/<%= u.id %>">
+            <td><a class="person" href="/admin/clients/<%= u.id %>"><span class="avatar sm <%= h.tone(u) %>"><%= h.initials(u) %></span><span><b><%= u.firstName %> <%= u.lastName %></b><small><%= u.email %></small></span></a></td>
+            <td class="mono"><%= u.phone || '—' %></td>
+            <td><%= u.city || '—' %></td>
+            <td>
+              <% if (u.accountStatus === 'SUSPENDED') { %><span class="chip danger" title="<%= u.statusReason || '' %>"><%= u.suspendedForFailedLogins ? '5 échecs' : 'Suspendu' %></span>
+              <% } else if (u.isEmailVerified) { %><span class="chip ok">Vérifié</span>
+              <% } else { %><span class="chip warn">En attente</span><% } %>
+            </td>
+            <td class="muted"><%= h.date(u.createdAt) %></td>
+            <td class="muted"><%= h.ago(u.lastLoginAt) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <footer class="pager">
+    <span class="muted"><%= (page - 1) * 12 + 1 %>–<%= Math.min(page * 12, total) %> sur <%= total %></span>
+    <span>
+      <a class="btn ghost sm<%= page <= 1 ? ' disabled' : '' %>" href="<%= h.withQuery('/admin/clients', base, { page: page - 1 }) %>">Précédent</a>
+      <a class="btn ghost sm<%= page >= pages ? ' disabled' : '' %>" href="<%= h.withQuery('/admin/clients', base, { page: page + 1 }) %>">Suivant</a>
+    </span>
+  </footer>
+  <% } %>
+</section>

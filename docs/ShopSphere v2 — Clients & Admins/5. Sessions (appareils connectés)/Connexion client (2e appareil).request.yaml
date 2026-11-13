@@ -1,0 +1,22 @@
+$kind: http-request
+description: Simule une connexion depuis un autre appareil (en-tête User-Agent différent). Si vous avez changé le mot de passe, mettez le nouveau dans le body.
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+  User-Agent: Postman iPhone (2e appareil)
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{clientEmail}}",
+      "password": "Shop2026Pass"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Statut 200', () => pm.response.to.have.status(200));
+      pm.collectionVariables.set('clientToken2', pm.response.json().token);
+      pm.collectionVariables.set('otherSessionId', pm.response.json().sessionId);
+    language: text/javascript
+order: 1000

@@ -1,0 +1,3 @@
+$kind: collection
+description: Connexion, inscription, vérification e-mail, mot de passe oublié.
+order: 1000

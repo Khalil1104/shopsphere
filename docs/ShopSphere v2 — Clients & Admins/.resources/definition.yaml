@@ -1,0 +1,18 @@
+$kind: collection
+description: "Ordre conseillé : 1 → 7. Les jetons sont enregistrés automatiquement après chaque connexion."
+variables:
+  baseUrl: http://localhost:3001
+  adminEmail: admin@shopsphere.tn
+  adminPassword: Admin2026X
+  clientEmail: votre.adresse@gmail.com
+  clientCin: "12345678"
+  adminToken: ""
+  clientToken: ""
+  clientId: ""
+  createdClientId: ""
+  adminId: ""
+  verifyToken: ""
+  resetToken: ""
+  randomCin: ""
+  clientToken2: ""
+  otherSessionId: ""

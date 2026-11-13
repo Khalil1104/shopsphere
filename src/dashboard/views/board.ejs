@@ -1,0 +1,51 @@
+<%
+  const cols = [
+    { key: 'unverified', title: 'En attente de vérification', hint: "Adresse e-mail pas encore confirmée", tone: 'warn', items: columns.unverified, drop: false },
+    { key: 'verified', title: 'Actifs et vérifiés', hint: 'Peuvent passer commande', tone: 'ok', items: columns.verified, drop: 'active' },
+    { key: 'suspended', title: 'Suspendus', hint: 'Déposez une carte ici pour suspendre', tone: 'danger', items: columns.suspended, drop: 'suspended' }
+  ];
+%>
+<header class="page-head">
+  <div>
+    <h1>Tableau des clients</h1>
+  </div>
+  <div class="head-actions">
+    <a class="btn ghost" href="/admin/clients"><svg class="ic"><use href="#i-users"/></svg>Vue liste</a>
+  </div>
+</header>
+
+<section class="board" data-board>
+  <% cols.forEach((col) => { %>
+    <div class="lane" data-lane="<%= col.key %>" <%- col.drop ? `data-drop="${col.drop}"` : '' %>>
+      <header class="lane-head">
+        <span class="dot <%= col.tone %>"></span>
+        <h2><%= col.title %></h2>
+        <b class="count"><%= col.items.length %></b>
+      </header>
+      <div class="lane-body">
+        <% if (!col.items.length) { %><div class="lane-empty">Aucun client</div><% } %>
+        <% col.items.forEach((u) => { %>
+          <article class="card" draggable="true" data-card="<%= u.id %>" data-from="<%= col.key %>">
+            <header>
+              <span class="avatar sm <%= h.tone(u) %>"><%= h.initials(u) %></span>
+              <a href="/admin/clients/<%= u.id %>"><b><%= u.firstName %> <%= u.lastName %></b><small><%= u.email %></small></a>
+              <svg class="ic grip" aria-hidden="true"><use href="#i-grip"/></svg>
+            </header>
+            <ul class="card-meta">
+              <li><svg class="ic"><use href="#i-pin"/></svg><%= u.city || 'Ville non renseignée' %></li>
+              <li><svg class="ic"><use href="#i-clock"/></svg><%= col.key === 'suspended' ? (u.statusReason || 'Suspendu') : col.key === 'unverified' ? `Inscrit ${h.ago(u.createdAt)}` : `Connexion ${h.ago(u.lastLoginAt)}` %></li>
+            </ul>
+            <footer>
+              <% if (col.key === 'suspended') { %>
+                <form method="post" action="/admin/clients/<%= u.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="to" value="active"><button class="btn ghost xs">Réactiver</button></form>
+              <% } else { %>
+                <form method="post" action="/admin/clients/<%= u.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="to" value="suspended"><button class="btn ghost xs">Suspendre</button></form>
+              <% } %>
+              <span class="muted mono">#<%= u.cin %></span>
+            </footer>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  <% }) %>
+</section>

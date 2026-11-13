@@ -1,0 +1,22 @@
+<%# Liste des sessions. Variables : sessions, base (URL de l'action), currentSid (optionnel) %>
+<% if (!sessions.length) { %>
+  <div class="empty sm"><svg class="ic"><use href="#i-device"/></svg><p>Aucun appareil connecté.</p></div>
+<% } else { %>
+  <ul class="rows sessions">
+    <% sessions.forEach((s) => { const current = typeof currentSid !== 'undefined' && s.sid === currentSid; %>
+      <li>
+        <span class="device-ic"><svg class="ic"><use href="#i-device"/></svg></span>
+        <span class="row-text">
+          <b><%= h.device(s.userAgent) %><% if (current) { %> <span class="chip ok">Cet appareil</span><% } %></b>
+          <small><%= s.ip || 'IP inconnue' %> · actif <%= h.ago(s.lastUsedAt) %> · expire le <%= h.dateTime(s.expiresAt) %></small>
+        </span>
+        <% if (!current) { %>
+          <form method="post" action="<%= base %>/<%= s.sid %>/delete">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <button class="btn ghost xs">Déconnecter</button>
+          </form>
+        <% } %>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

@@ -1,0 +1,15 @@
+$kind: http-request
+name: Mon compte (/me)
+url: "{{baseUrl}}/api/auth/me"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{clientToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Statut 200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 4000
