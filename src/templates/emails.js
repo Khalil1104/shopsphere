@@ -158,5 +158,33 @@ module.exports = {
         ? `Bonjour ${firstName},\nVotre compte a été suspendu.${reason ? ` Motif : ${reason}` : ''}`
         : `Bonjour ${firstName},\nVotre compte est de nouveau actif.`
     };
-  }
+  },
+
+  twoFactorCode: ({ firstName, code, minutes }) => ({
+    subject: `${code} est votre code de connexion ShopSphere`,
+    html: layout({
+      title: 'Votre code de connexion',
+      color: '#7c3aed',
+      body:
+        p(`Bonjour ${esc(firstName)},`) +
+        p('Voici le code pour terminer votre connexion :') +
+        `<p style="text-align:center;margin:24px 0"><span style="display:inline-block;font-size:32px;font-weight:700;letter-spacing:10px;background:#f5f3ff;color:#5b21b6;padding:14px 24px;border-radius:10px;font-family:Consolas,monospace">${esc(code)}</span></p>` +
+        p(`Ce code est valable <strong>${esc(minutes)} minutes</strong> et ne sert qu'une seule fois.`) +
+        p("Si ce n'était pas vous, quelqu'un connaît votre mot de passe : changez-le dès maintenant.")
+    }),
+    text: `Bonjour ${firstName},\nVotre code de connexion ShopSphere : ${code}\nValable ${minutes} minutes. Si ce n'était pas vous, changez votre mot de passe.`
+  }),
+
+  securityNotice: ({ firstName, title, text }) => ({
+    subject: title,
+    html: layout({
+      title,
+      color: '#0891b2',
+      body:
+        p(`Bonjour ${esc(firstName)},`) +
+        p(esc(text)) +
+        p("Si ce n'était pas vous, changez votre mot de passe immédiatement.")
+    }),
+    text: `Bonjour ${firstName},\n${text}\nSi ce n'était pas vous, changez votre mot de passe immédiatement.`
+  })
 };

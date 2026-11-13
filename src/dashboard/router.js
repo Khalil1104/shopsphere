@@ -19,7 +19,11 @@ const automations = require('../automations');
 const schemas = require('../validators/schemas');
 const helpers = require('./helpers');
 const charts = require('./charts');
+const webauthnService = require('../services/webauthnService');
+const { dashboardLimiter } = require('../middlewares/rateLimit');
+const { verifyTwoFactorChallenge } = require('../utils/security');
 const { setSessionCookie, clearSessionCookie, flash, readFlash, requireAdmin, checkCsrf, sameToken } = require('./session');
+const captcha = require('./captcha');
 
 /**
  * Tableau de bord administrateur, rendu côté serveur (Express + EJS).
@@ -75,6 +79,9 @@ const action = (fn, fallback) => async (req, res) => {
 const isId = (id) => /^[a-f0-9]{24}$/.test(id);
 
 // --------------------------------------------------------------------------- statiques + connexion
+// Bibliothèque navigateur de WebAuthn (servie depuis node_modules, pas de CDN)
+const WEBAUTHN_BUNDLE = path.join(path.dirname(require.resolve('@simplewebauthn/browser')), '../dist/bundle/index.umd.min.js');
+router.get('/assets/vendor/webauthn.js', (req, res) => res.sendFile(WEBAUTHN_BUNDLE));
 router.use('/assets', express.static(path.join(__dirname, 'public'), { maxAge: config.env === 'production' ? '1d' : 0 }));
 router.use(readFlash);
 
@@ -84,31 +91,126 @@ router.get('/theme', (req, res) => {
   res.redirect(back.startsWith('/admin') ? back : '/admin');
 });
 
-router.get('/login', (req, res) => {
-  const token = crypto.randomBytes(16).toString('hex');
-  res.cookie('ss_login', token, { httpOnly: true, sameSite: 'strict', path: '/admin' });
-  return render(req, res, 'login', { loginCsrf: token, next: req.query.next || '/admin', email: '' }, { layout: false });
-});
+// --- Connexion : mot de passe + CAPTCHA, puis code 2FA si activé, ou Face ID ---------------
+const tmpCookie = { httpOnly: true, sameSite: 'strict', path: '/admin' };
+const safeNext = (value) => (String(value || '').startsWith('/admin') ? String(value) : '/admin');
 
-router.post('/login', async (req, res) => {
-  const nextUrl = String(req.body.next || '/admin').startsWith('/admin') ? String(req.body.next || '/admin') : '/admin';
-  const again = (message, status) => {
-    const token = crypto.randomBytes(16).toString('hex');
-    res.cookie('ss_login', token, { httpOnly: true, sameSite: 'strict', path: '/admin' });
-    return render(req, res, 'login', { loginCsrf: token, next: nextUrl, email: req.body.email || '', error: message }, { layout: false, status });
-  };
+/** Affiche la page de connexion (étape "password" ou "code") avec un nouveau jeton anti-CSRF. */
+function loginPage(req, res, locals = {}, status = 200) {
+  const token = crypto.randomBytes(16).toString('hex');
+  res.cookie('ss_login', token, tmpCookie);
+  return render(
+    req,
+    res,
+    'login',
+    { step: 'password', loginCsrf: token, next: safeNext(req.query.next || req.body?.next), email: '', error: '', captcha: config.captchaEnabled, ...locals },
+    { layout: false, status }
+  );
+}
+
+/** a***@shopsphere.tn */
+const maskEmail = (email) => String(email).replace(/^(.)[^@]*(@.*)$/, (_m, a, b) => `${a}***${b}`);
+
+router.get('/captcha.svg', captcha.image);
+
+router.get('/login', (req, res) => loginPage(req, res));
+
+router.post('/login', dashboardLimiter, async (req, res) => {
+  const nextUrl = safeNext(req.body.next);
+  const again = (message, status) => loginPage(req, res, { next: nextUrl, email: req.body.email || '', error: message }, status);
   if (!sameToken(req.body._csrf, req.cookies.ss_login)) return again('Session de connexion expirée, réessayez.', 403);
+  if (config.captchaEnabled && !captcha.check(req, res)) return again('Code de vérification incorrect, recopiez les caractères de l’image.', 400);
   try {
     const { email, password } = formData(schemas.auth.login.body, { email: req.body.email, password: req.body.password });
-    const { token, expiresAt } = await authService.login('admin', { email, password }, { ip: req.ip, userAgent: req.get('user-agent') });
+    const result = await authService.login('admin', { email, password }, { ip: req.ip, userAgent: req.get('user-agent') });
     res.clearCookie('ss_login', { path: '/admin' });
-    setSessionCookie(res, token, expiresAt);
+    if (result.twoFactorRequired) {
+      res.cookie('ss_2fa', result.challengeToken, { ...tmpCookie, expires: result.expiresAt });
+      return res.redirect(`/admin/login/code?next=${encodeURIComponent(nextUrl)}`);
+    }
+    setSessionCookie(res, result.token, result.expiresAt);
     return res.redirect(nextUrl);
   } catch (err) {
     if (err instanceof AppError) return again(err.status === 400 ? 'Saisissez une adresse e-mail et un mot de passe valides.' : err.message, err.status);
     throw err;
   }
 });
+
+/** Adresse (masquée) à laquelle le code a été envoyé, ou null si le défi est absent / expiré. */
+async function codeTarget(req) {
+  try {
+    const payload = verifyTwoFactorChallenge(req.cookies.ss_2fa);
+    const admin = await Admin.findById(payload.sub);
+    return admin ? maskEmail(admin.email) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Étape 2 : code reçu par e-mail
+router.get('/login/code', async (req, res) => {
+  const sentTo = await codeTarget(req);
+  if (!sentTo) {
+    res.clearCookie('ss_2fa', { path: '/admin' });
+    return res.redirect('/admin/login');
+  }
+  return loginPage(req, res, { step: 'code', sentTo });
+});
+
+router.post('/login/code', dashboardLimiter, async (req, res) => {
+  const nextUrl = safeNext(req.body.next);
+  if (!sameToken(req.body._csrf, req.cookies.ss_login)) return loginPage(req, res, { error: 'Session de connexion expirée, réessayez.' }, 403);
+  const code = String(req.body.code || '').replace(/\s/g, '');
+  if (!/^[0-9]{6}$/.test(code)) return loginPage(req, res, { step: 'code', sentTo: await codeTarget(req), next: nextUrl, error: 'Le code contient 6 chiffres.' }, 400);
+  try {
+    const result = await authService.verifyTwoFactor({ challengeToken: req.cookies.ss_2fa, code }, { ip: req.ip, userAgent: req.get('user-agent') });
+    res.clearCookie('ss_2fa', { path: '/admin' });
+    res.clearCookie('ss_login', { path: '/admin' });
+    setSessionCookie(res, result.token, result.expiresAt);
+    return res.redirect(nextUrl);
+  } catch (err) {
+    if (!(err instanceof AppError)) throw err;
+    if (err.code === 'INVALID_CODE') return loginPage(req, res, { step: 'code', sentTo: await codeTarget(req), next: nextUrl, error: err.message }, err.status);
+    res.clearCookie('ss_2fa', { path: '/admin' });
+    return loginPage(req, res, { next: nextUrl, error: err.message }, err.status);
+  }
+});
+
+// Face ID : défi puis vérification (appelés par le JavaScript de la page de connexion)
+const loginJson = (handler) => async (req, res) => {
+  if (!sameToken(req.get('x-login-token'), req.cookies.ss_login)) {
+    return res.status(403).json({ ok: false, message: 'Session de connexion expirée, rechargez la page.' });
+  }
+  try {
+    return await handler(req, res);
+  } catch (err) {
+    if (!(err instanceof AppError)) throw err;
+    return res.status(err.status).json({ ok: false, message: err.message });
+  }
+};
+
+router.post(
+  '/passkey/options',
+  dashboardLimiter,
+  loginJson(async (req, res) => {
+    const { key, options } = await webauthnService.authenticationOptions();
+    res.cookie('ss_passkey', key, { ...tmpCookie, maxAge: 5 * 60 * 1000 });
+    return res.json(options);
+  })
+);
+
+router.post(
+  '/passkey/verify',
+  dashboardLimiter,
+  loginJson(async (req, res) => {
+    const key = req.cookies.ss_passkey;
+    res.clearCookie('ss_passkey', { path: '/admin' });
+    const { token, expiresAt } = await webauthnService.verifyAuthentication(key, req.body.response, { ip: req.ip, userAgent: req.get('user-agent') });
+    res.clearCookie('ss_login', { path: '/admin' });
+    setSessionCookie(res, token, expiresAt);
+    return res.json({ ok: true, redirect: safeNext(req.body.next) });
+  })
+);
 
 // --------------------------------------------------------------------------- zone protégée
 router.use(requireAdmin, checkCsrf);
@@ -377,8 +479,56 @@ router.post(
 // --- Mon compte -------------------------------------------------------------------------
 router.get('/account', async (req, res) => {
   const sessions = (req.admin.sessions || []).filter((s) => s.expiresAt > new Date()).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
-  return render(req, res, 'account', { title: 'Mon compte', sessions, currentSid: req.auth.sid });
+  const passkeys = await webauthnService.list(req.auth.id);
+  return render(req, res, 'account', {
+    title: 'Mon compte',
+    sessions,
+    currentSid: req.auth.sid,
+    passkeys,
+    faceIdUrl: config.webauthn.origin,
+    faceIdHere: `${req.protocol}://${req.get('host')}` === config.webauthn.origin
+  });
 });
+
+// Double authentification (mot de passe demandé)
+router.post(
+  '/account/2fa',
+  action(async (req) => {
+    const enabled = req.body.enabled === '1';
+    if (!req.body.password) throw AppError.badRequest('Saisissez votre mot de passe.');
+    await authService.setTwoFactor('admin', req.auth.id, { password: req.body.password, enabled });
+    return { redirect: '/admin/account', message: enabled ? 'Double authentification activée.' : 'Double authentification désactivée.' };
+  }, '/admin/account')
+);
+
+// Face ID : enregistrer cet appareil (appelé par le JavaScript de la page)
+const accountJson = (handler) => async (req, res) => {
+  try {
+    return await handler(req, res);
+  } catch (err) {
+    if (!(err instanceof AppError)) throw err;
+    return res.status(err.status).json({ ok: false, message: err.message });
+  }
+};
+
+router.post('/account/passkeys/options', accountJson(async (req, res) => res.json(await webauthnService.registrationOptions(req.auth.id))));
+
+router.post(
+  '/account/passkeys/verify',
+  accountJson(async (req, res) => {
+    await webauthnService.verifyRegistration(req.auth.id, req.body.response, req.body.name);
+    flash(res, 'success', 'Face ID activé sur cet appareil.');
+    return res.json({ ok: true });
+  })
+);
+
+router.post(
+  '/account/passkeys/delete',
+  action(async (req) => {
+    await webauthnService.remove(req.auth.id, String(req.body.id || ''));
+    return { redirect: '/admin/account', message: 'Appareil Face ID supprimé.' };
+  }, '/admin/account')
+);
 
 router.post(
   '/account',

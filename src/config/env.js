@@ -27,7 +27,9 @@ const { value: env, error } = Joi.object({
   PASSWORD_RESET_MINUTES: Joi.number().integer().min(5).default(30),
   MAX_FAILED_LOGINS: Joi.number().integer().min(3).default(5),
   MAX_SESSIONS: Joi.number().integer().min(1).max(50).default(10),
-  RATE_LIMIT_AUTH_MAX: Joi.number().integer().min(5).default(50)
+  RATE_LIMIT_AUTH_MAX: Joi.number().integer().min(5).default(50),
+  TWO_FACTOR_MINUTES: Joi.number().integer().min(1).max(30).default(10),
+  CAPTCHA_ENABLED: Joi.boolean().default(true)
 })
   .unknown(true)
   .validate(process.env, { abortEarly: false });
@@ -35,6 +37,8 @@ const { value: env, error } = Joi.object({
 if (error) {
   throw new Error(`Fichier .env invalide :\n${error.details.map((d) => `  - ${d.message}`).join('\n')}`);
 }
+
+const appUrl = new URL(env.APP_URL);
 
 module.exports = Object.freeze({
   env: env.NODE_ENV,
@@ -57,5 +61,10 @@ module.exports = Object.freeze({
   maxFailedLogins: env.MAX_FAILED_LOGINS,
   maxSessions: env.MAX_SESSIONS,
   rateLimitAuthMax: env.RATE_LIMIT_AUTH_MAX,
+  twoFactorMinutes: env.TWO_FACTOR_MINUTES,
+  twoFactorMaxAttempts: 5,
+  captchaEnabled: env.CAPTCHA_ENABLED,
+  // Face ID (WebAuthn) : lié au domaine de APP_URL (ex. "localhost")
+  webauthn: { rpName: 'ShopSphere Admin', rpId: appUrl.hostname, origin: appUrl.origin },
   bcryptRounds: env.NODE_ENV === 'test' ? 4 : 12
 });

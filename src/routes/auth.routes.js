@@ -15,6 +15,11 @@ router.post('/login', authLimiter, validate(v.login), ctrl.loginClient);
 router.post('/admin/login', authLimiter, validate(v.login), ctrl.loginAdmin);
 router.get('/me', authenticate, ctrl.me);
 
+// --- Double authentification (code par e-mail) ---
+router.post('/2fa/verify', authLimiter, validate(v.twoFactorVerify), ctrl.verifyTwoFactor);
+router.post('/2fa/enable', authenticate, validate(v.twoFactorToggle), ctrl.enableTwoFactor);
+router.post('/2fa/disable', authenticate, validate(v.twoFactorToggle), ctrl.disableTwoFactor);
+
 // --- Sessions (stockées dans le compte, pas de collection en plus) ---
 router.get('/sessions', authenticate, ctrl.listSessions);
 router.delete('/sessions/:sid', authenticate, validate(v.sessionId), ctrl.closeSession);

@@ -2,7 +2,7 @@
   "info": {
     "name": "ShopSphere v2 — Clients & Admins",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Ordre conseillé : 1 → 7. Les jetons sont enregistrés automatiquement après chaque connexion."
+    "description": "Ordre conseillé : 1 → 8. Les jetons sont enregistrés automatiquement après chaque connexion."
   },
   "item": [
     {
@@ -1899,6 +1899,260 @@
           ]
         }
       ]
+    },
+    {
+      "name": "8. Double authentification (2FA)",
+      "description": "Code à 6 chiffres envoyé par e-mail après le mot de passe. Rien n'est ajouté en base à part 4 champs dans le compte (pas de collection).\nÉtape 4 : copiez le code reçu par e-mail dans la variable twoFactorCode (onglet Variables de la collection), enregistrez, puis envoyez la requête.",
+      "item": [
+        {
+          "name": "Activer la 2FA (client)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/2fa/enable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "2fa",
+                "enable"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"Shop2026Pass\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "pm.test('2FA activée', () => pm.expect(pm.response.json().twoFactorEnabled).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connexion → code envoyé par e-mail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"Shop2026Pass\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Code demandé, pas encore de jeton', () => { pm.expect(body.twoFactorRequired).to.eql(true); pm.expect(body.token).to.be.undefined; });",
+                  "pm.collectionVariables.set('challengeToken', body.challengeToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Code faux (refusé 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/2fa/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "2fa",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\",\n  \"code\": \"000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statut 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Essais restants', () => pm.expect(pm.response.json().message).to.include('essai'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Code reçu par e-mail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/2fa/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "2fa",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\",\n  \"code\": \"{{twoFactorCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Avant d'envoyer : mettez le code reçu par e-mail dans la variable twoFactorCode."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Jeton reçu', () => pm.expect(pm.response.json().token).to.be.a('string'));",
+                  "pm.collectionVariables.set('clientToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Désactiver la 2FA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/2fa/disable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "2fa",
+                "disable"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"Shop2026Pass\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "pm.test('2FA désactivée', () => pm.expect(pm.response.json().twoFactorEnabled).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -1960,6 +2214,14 @@
     },
     {
       "key": "otherSessionId",
+      "value": ""
+    },
+    {
+      "key": "challengeToken",
+      "value": ""
+    },
+    {
+      "key": "twoFactorCode",
       "value": ""
     }
   ]

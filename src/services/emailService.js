@@ -87,5 +87,7 @@ module.exports = {
       event,
       link: `${config.appUrl}/admin/${event.type === 'admin' ? 'admins' : 'clients'}/${event.id}`
     }),
-  sendStatusChanged: (user, status, reason) => send('statusChanged', user.email, { firstName: user.firstName, status, reason })
+  sendStatusChanged: (user, status, reason) => send('statusChanged', user.email, { firstName: user.firstName, status, reason }),
+  sendTwoFactorCode: (user, code) => send('twoFactorCode', user.email, { firstName: user.firstName, code, minutes: config.twoFactorMinutes }),
+  sendSecurityNotice: (user, title, text) => send('securityNotice', user.email, { firstName: user.firstName, title, text })
 };

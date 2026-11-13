@@ -403,6 +403,27 @@ label small { font-weight: 400; }
 .login-panel h1 { font-size: 24px; }
 .login-panel .form { margin-top: 12px; gap: 16px; }
 .login-panel .alert { margin: 16px 0 0; }
+.login-sub { font-size: 13.5px; line-height: 1.5; }
+.login-back { margin-top: 18px; text-align: center; font-size: 13px; color: var(--muted); }
+.login-back:hover { color: var(--text); }
+.btn.faceid { margin-top: 18px; gap: 9px; background: var(--panel-2); border-color: var(--line-2); color: var(--text); }
+.btn.faceid:hover { background: var(--panel-3); }
+.btn.faceid .ic { width: 19px; height: 19px; color: var(--accent); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.divider { display: flex; align-items: center; gap: 12px; margin-top: 14px; color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.captcha { display: grid; gap: 6px; }
+.captcha-label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.captcha-row { display: flex; align-items: center; gap: 8px; }
+.captcha-row img { flex: 1; min-width: 0; height: 54px; object-fit: contain; border-radius: 9px; border: 1px solid var(--line-2); background: #eef2f7; }
+.captcha-refresh { width: 42px; height: 54px; padding: 0; justify-content: center; }
+.captcha input { height: 38px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--panel-2); font-size: 14px; color: var(--text); letter-spacing: 0.12em; }
+.captcha input::placeholder { letter-spacing: normal; }
+.captcha input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.code-input { width: 100%; min-width: 0; padding-left: 0.5em !important; height: 52px !important; text-align: center; font-size: 24px !important; letter-spacing: 0.5em; font-family: ui-monospace, Consolas, monospace; }
+.faceid-add { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.faceid-add .alert { margin: 0; }
+.faceid-add .btn { justify-self: start; }
 .fineprint { margin-top: 22px; color: var(--faint); font-size: 12.5px; max-width: 360px; }
 .login-aside {
   display: grid; place-items: center; padding: 48px;

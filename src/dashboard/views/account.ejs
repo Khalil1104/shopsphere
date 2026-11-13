@@ -6,22 +6,75 @@
 </header>
 
 <section class="grid-detail">
-  <form class="panel form" method="post" action="/admin/account">
-    <header class="panel-head"><div><h2>Profil</h2></div></header>
-    <input type="hidden" name="_csrf" value="<%= csrf %>">
-    <div class="fields two">
-      <label>Prénom<input name="firstName" value="<%= me.firstName %>" required></label>
-      <label>Nom<input name="lastName" value="<%= me.lastName %>" required></label>
-      <label class="span-2">Téléphone<input name="phone" value="<%= me.phone || '' %>"></label>
-    </div>
-    <div class="form-actions"><button class="btn primary">Enregistrer</button></div>
-  </form>
+  <div class="stack">
+    <form class="panel form" method="post" action="/admin/account">
+      <header class="panel-head"><div><h2>Profil</h2></div></header>
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="fields two">
+        <label>Prénom<input name="firstName" value="<%= me.firstName %>" required></label>
+        <label>Nom<input name="lastName" value="<%= me.lastName %>" required></label>
+        <label class="span-2">Téléphone<input name="phone" value="<%= me.phone || '' %>"></label>
+      </div>
+      <div class="form-actions"><button class="btn primary">Enregistrer</button></div>
+    </form>
 
-  <article class="panel">
-    <header class="panel-head">
-      <div><h2>Mes appareils</h2><p class="muted"><%= h.plural(sessions.length, 'session active', 'sessions actives') %></p></div>
-      <form method="post" action="/admin/account/logout-all"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost xs">Déconnecter partout</button></form>
-    </header>
-    <%- include('partials/sessions', { sessions, base: '/admin/account/sessions', currentSid }) %>
-  </article>
+    <article class="panel">
+      <header class="panel-head">
+        <div><h2>Face ID</h2><p class="muted"><%= h.plural(passkeys.length, 'appareil enregistré', 'appareils enregistrés') %></p></div>
+        <span class="chip <%= passkeys.length ? 'ok' : '' %>"><%= passkeys.length ? 'Activé' : 'Désactivé' %></span>
+      </header>
+
+      <% if (passkeys.length) { %>
+        <ul class="rows sessions">
+          <% passkeys.forEach((k) => { %>
+            <li>
+              <span class="device-ic"><svg class="ic"><use href="#i-face"/></svg></span>
+              <span class="row-text">
+                <b><%= k.name %></b>
+                <small>Ajouté le <%= h.date(k.createdAt) %> · <%= k.lastUsedAt ? 'utilisé ' + h.ago(k.lastUsedAt) : 'jamais utilisé' %></small>
+              </span>
+              <form method="post" action="/admin/account/passkeys/delete" data-confirm="Supprimer">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <input type="hidden" name="id" value="<%= k.id %>">
+                <button class="btn ghost xs">Supprimer</button>
+              </form>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+
+      <div class="faceid-add">
+        <div class="alert error" data-faceid-register-error hidden></div>
+        <label>Nom de l'appareil<input data-faceid-name value="PC Windows Hello" maxlength="60"></label>
+        <button class="btn primary" type="button" data-faceid-register data-wrong-host="<%= !faceIdHere %>" data-url="<%= faceIdUrl %>">
+          <svg class="ic"><use href="#i-face"/></svg> Enregistrer cet appareil
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <div class="stack">
+    <article class="panel">
+      <header class="panel-head">
+        <div><h2>Double authentification</h2><p class="muted">Code à 6 chiffres par e-mail à chaque connexion</p></div>
+        <span class="chip <%= me.twoFactorEnabled ? 'ok' : '' %>"><%= me.twoFactorEnabled ? 'Activée' : 'Désactivée' %></span>
+      </header>
+      <form class="form" method="post" action="/admin/account/2fa">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="enabled" value="<%= me.twoFactorEnabled ? '0' : '1' %>">
+        <label>Mot de passe<input type="password" name="password" autocomplete="current-password" required></label>
+        <div class="form-actions">
+          <button class="btn <%= me.twoFactorEnabled ? 'ghost' : 'primary' %>"><svg class="ic"><use href="#i-lock"/></svg> <%= me.twoFactorEnabled ? 'Désactiver' : 'Activer' %></button>
+        </div>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header class="panel-head">
+        <div><h2>Mes appareils</h2><p class="muted"><%= h.plural(sessions.length, 'session active', 'sessions actives') %></p></div>
+        <form method="post" action="/admin/account/logout-all"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost xs">Déconnecter partout</button></form>
+      </header>
+      <%- include('partials/sessions', { sessions, base: '/admin/account/sessions', currentSid }) %>
+    </article>
+  </div>
 </section>

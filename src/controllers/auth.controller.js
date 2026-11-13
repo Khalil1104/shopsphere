@@ -6,6 +6,20 @@ const { message, resetForm, wantsHtml } = require('../utils/page');
 
 const ctxOf = (req) => ({ ip: req.ip, userAgent: req.get('user-agent') });
 
+/** Réponse de connexion : soit le jeton, soit "code envoyé par e-mail" si la 2FA est active. */
+function sendLogin(res, type, result) {
+  if (result.twoFactorRequired) {
+    return res.json({
+      message: 'Code de connexion envoyé par e-mail.',
+      twoFactorRequired: true,
+      challengeToken: result.challengeToken,
+      expiresAt: result.expiresAt
+    });
+  }
+  const { token, sessionId, expiresAt, user } = result;
+  return res.json({ message: 'Connexion réussie', token, sessionId, expiresAt, [type]: user });
+}
+
 const GENERIC = "Si un compte correspond à cette adresse, un e-mail vient d'être envoyé.";
 
 module.exports = {
@@ -20,14 +34,30 @@ module.exports = {
 
   /** POST /api/auth/login (client) */
   async loginClient(req, res) {
-    const { token, sessionId, expiresAt, user } = await authService.login('client', req.body, ctxOf(req));
-    res.json({ message: 'Connexion réussie', token, sessionId, expiresAt, client: user });
+    sendLogin(res, 'client', await authService.login('client', req.body, ctxOf(req)));
   },
 
   /** POST /api/auth/admin/login */
   async loginAdmin(req, res) {
-    const { token, sessionId, expiresAt, user } = await authService.login('admin', req.body, ctxOf(req));
-    res.json({ message: 'Connexion réussie', token, sessionId, expiresAt, admin: user });
+    sendLogin(res, 'admin', await authService.login('admin', req.body, ctxOf(req)));
+  },
+
+  // --- Double authentification ---
+  /** POST /api/auth/2fa/verify : code reçu par e-mail + challengeToken → jeton de session. */
+  async verifyTwoFactor(req, res) {
+    const result = await authService.verifyTwoFactor(req.body, ctxOf(req));
+    sendLogin(res, result.type, result);
+  },
+
+  /** POST /api/auth/2fa/enable et /disable (mot de passe demandé). */
+  async enableTwoFactor(req, res) {
+    await authService.setTwoFactor(req.auth.type, req.auth.id, { password: req.body.password, enabled: true });
+    res.json({ message: 'Double authentification activée : un code vous sera envoyé par e-mail à chaque connexion.', twoFactorEnabled: true });
+  },
+
+  async disableTwoFactor(req, res) {
+    await authService.setTwoFactor(req.auth.type, req.auth.id, { password: req.body.password, enabled: false });
+    res.json({ message: 'Double authentification désactivée.', twoFactorEnabled: false });
   },
 
   /** GET /api/auth/me : utilisateur du jeton. */

@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const config = require('../config/env');
 const AppError = require('../utils/AppError');
 const Client = require('../models/Client');
@@ -7,7 +8,16 @@ const Admin = require('../models/Admin');
 const emailService = require('./emailService');
 const sessionService = require('./sessionService');
 const automations = require('../automations');
-const { hashPassword, comparePassword, generateToken, hashToken } = require('../utils/security');
+const {
+  hashPassword,
+  comparePassword,
+  generateToken,
+  hashToken,
+  signTwoFactorChallenge,
+  verifyTwoFactorChallenge,
+  sixDigitCode,
+  safeEqual
+} = require('../utils/security');
 
 const modelFor = (type) => (type === 'admin' ? Admin : Client);
 
@@ -108,8 +118,97 @@ async function login(type, { email, password }, ctx = {}) {
       : 'Compte suspendu. Contactez le support.');
   }
 
+  // Double authentification active : pas encore de session, on envoie d'abord un code par e-mail.
+  if (user.twoFactorEnabled) return startTwoFactor(Model, user, type);
+
   const session = await sessionService.open(user, type, ctx);
   return { token: session.token, sessionId: session.sid, expiresAt: session.expiresAt, user };
+}
+
+// --------------------------------------------------------------------------- double authentification
+const CODE_FIELDS = '+twoFactorCode +twoFactorExpires +twoFactorAttempts';
+const clearCode = { $unset: { twoFactorCode: 1, twoFactorExpires: 1, twoFactorAttempts: 1 } };
+
+/**
+ * Étape 1 (après un bon mot de passe) : code à 6 chiffres envoyé par e-mail.
+ * En base : seulement le hash de "défi:code", une date d'expiration et un compteur d'essais.
+ * On renvoie un "challengeToken" (valable quelques minutes) à présenter avec le code.
+ */
+async function startTwoFactor(Model, user, type) {
+  const cid = crypto.randomUUID(); // identifiant du défi, mis dans le challengeToken
+  const code = sixDigitCode();
+  await Model.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        twoFactorCode: hashToken(`${cid}:${code}`),
+        twoFactorExpires: new Date(Date.now() + config.twoFactorMinutes * 60000),
+        twoFactorAttempts: 0
+      }
+    }
+  );
+  await emailService.sendTwoFactorCode(user, code);
+  const challenge = signTwoFactorChallenge(user, type, cid);
+  return { twoFactorRequired: true, challengeToken: challenge.token, expiresAt: challenge.expiresAt, user };
+}
+
+/**
+ * Étape 2 : vérification du code. Bon code → la session est créée (comme un login normal).
+ * Après 5 codes faux, le code est annulé : il faut se reconnecter avec le mot de passe.
+ */
+async function verifyTwoFactor({ challengeToken, code }, ctx = {}) {
+  let payload;
+  try {
+    payload = verifyTwoFactorChallenge(challengeToken);
+  } catch {
+    throw new AppError(401, 'CODE_EXPIRED', 'Code expiré : reconnectez-vous pour en recevoir un nouveau.');
+  }
+  const Model = modelFor(payload.type);
+  const user = await Model.findById(payload.sub).select(CODE_FIELDS);
+  if (!user || !user.twoFactorCode || user.twoFactorExpires <= new Date()) {
+    throw new AppError(401, 'CODE_EXPIRED', 'Code expiré ou déjà utilisé : reconnectez-vous pour en recevoir un nouveau.');
+  }
+  if (user.accountStatus !== 'ACTIVE') throw new AppError(403, 'ACCOUNT_SUSPENDED', 'Compte suspendu. Contactez le support.');
+
+  if (!safeEqual(hashToken(`${payload.cid}:${code}`), user.twoFactorCode)) {
+    const updated = await Model.findOneAndUpdate(
+      { _id: user._id, twoFactorCode: user.twoFactorCode },
+      { $inc: { twoFactorAttempts: 1 } },
+      { returnDocument: 'after' }
+    ).select('+twoFactorAttempts');
+    const left = updated ? config.twoFactorMaxAttempts - updated.twoFactorAttempts : 0;
+    if (left <= 0) {
+      await Model.updateOne({ _id: user._id }, clearCode);
+      throw new AppError(401, 'CODE_BLOCKED', 'Trop de codes incorrects : reconnectez-vous pour recevoir un nouveau code.');
+    }
+    throw new AppError(401, 'INVALID_CODE', `Code incorrect. Il vous reste ${left} essai${left > 1 ? 's' : ''}.`);
+  }
+
+  // Le code ne sert qu'une fois (mise à jour atomique : deux envois simultanés → un seul passe)
+  const used = await Model.updateOne({ _id: user._id, twoFactorCode: user.twoFactorCode }, clearCode);
+  if (used.modifiedCount === 0) throw new AppError(401, 'CODE_EXPIRED', 'Code déjà utilisé : reconnectez-vous.');
+
+  const session = await sessionService.open(user, payload.type, ctx);
+  return { type: payload.type, token: session.token, sessionId: session.sid, expiresAt: session.expiresAt, user };
+}
+
+/** Activer / désactiver la 2FA (mot de passe demandé) + e-mail de confirmation. */
+async function setTwoFactor(type, userId, { password, enabled }) {
+  const Model = modelFor(type);
+  const user = await Model.findById(userId).select('+password');
+  if (!user) throw AppError.notFound('Compte introuvable');
+  if (!(await comparePassword(password, user.password))) throw AppError.unauthorized('Mot de passe incorrect');
+  if (user.twoFactorEnabled !== enabled) {
+    await Model.updateOne({ _id: user._id }, { $set: { twoFactorEnabled: enabled }, ...clearCode });
+    await emailService.sendSecurityNotice(
+      user,
+      enabled ? 'Double authentification activée' : 'Double authentification désactivée',
+      enabled
+        ? 'La double authentification est active sur votre compte : à chaque connexion, un code à 6 chiffres vous sera envoyé par e-mail.'
+        : 'La double authentification a été désactivée sur votre compte : le mot de passe suffit de nouveau pour vous connecter.'
+    );
+  }
+  return { twoFactorEnabled: enabled };
 }
 
 /** Le lien de l'e-mail contient le jeton : on le compare au hash stocké. */
@@ -165,4 +264,4 @@ async function resetPassword({ token, password, type }) {
   return { user, reactivated: user.suspendedForFailedLogins };
 }
 
-module.exports = { createClient, login, verifyEmail, resendVerification, forgotPassword, resetPassword };
+module.exports = { createClient, login, verifyTwoFactor, setTwoFactor, verifyEmail, resendVerification, forgotPassword, resetPassword };

@@ -34,6 +34,45 @@ function signSessionJwt(user, type, sid) {
 
 const verifyJwt = (token) => jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
 
+// --- Jeton de double authentification ------------------------------------------
+// Donné après un bon mot de passe quand la 2FA est active. Il ne permet RIEN d'autre
+// que d'envoyer le code : il est signé avec une clé dérivée, donc refusé partout ailleurs.
+const twoFactorSecret = () => `${config.jwt.secret}:2fa`;
+
+function signTwoFactorChallenge(user, type, cid) {
+  const token = jwt.sign({ type, cid }, twoFactorSecret(), {
+    subject: String(user._id),
+    expiresIn: `${config.twoFactorMinutes}m`,
+    algorithm: 'HS256'
+  });
+  return { token, expiresAt: new Date(jwt.decode(token).exp * 1000) };
+}
+
+const verifyTwoFactorChallenge = (token) => jwt.verify(token, twoFactorSecret(), { algorithms: ['HS256'] });
+
+/** Code à 6 chiffres tiré au hasard (crypto, pas Math.random). */
+const sixDigitCode = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+
+/** Comparaison en temps constant de deux chaînes. */
+function safeEqual(a, b) {
+  if (!a || !b) return false;
+  const x = Buffer.from(String(a));
+  const y = Buffer.from(String(b));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+
 const newSessionId = () => crypto.randomUUID();
 
-module.exports = { hashPassword, comparePassword, generateToken, hashToken, signSessionJwt, verifyJwt, newSessionId };
+module.exports = {
+  hashPassword,
+  comparePassword,
+  generateToken,
+  hashToken,
+  signSessionJwt,
+  verifyJwt,
+  newSessionId,
+  signTwoFactorChallenge,
+  verifyTwoFactorChallenge,
+  sixDigitCode,
+  safeEqual
+};

@@ -58,7 +58,14 @@ const auth = {
       confirmPassword: confirmOf('password'),
       type: Joi.string().valid('client', 'admin').default('client')
     })
-  }
+  },
+  twoFactorVerify: {
+    body: Joi.object({
+      challengeToken: Joi.string().max(2000).required(),
+      code: Joi.string().trim().pattern(/^[0-9]{6}$/).required().messages({ 'string.pattern.base': 'Le code contient 6 chiffres' })
+    })
+  },
+  twoFactorToggle: { body: Joi.object({ password: Joi.string().max(72).required() }) }
 };
 
 // --- Clients --------------------------------------------------------------------

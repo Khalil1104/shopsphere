@@ -30,11 +30,29 @@ const securityFields = () => ({
   sessions: { type: [sessionSchema], default: [], select: false },
 
   passwordResetToken: { type: String, select: false }, // hash SHA-256
-  passwordResetExpires: { type: Date, select: false }
+  passwordResetExpires: { type: Date, select: false },
+
+  // Double authentification : code à 6 chiffres envoyé par e-mail après le mot de passe
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorCode: { type: String, select: false }, // hash SHA-256 de "défi:code"
+  twoFactorExpires: { type: Date, select: false },
+  twoFactorAttempts: { type: Number, select: false }
 });
 
 /** Champs jamais renvoyés dans une réponse JSON. */
-const HIDDEN = ['password', 'failedLoginAttempts', 'sessions', 'passwordResetToken', 'passwordResetExpires', 'emailVerificationToken', 'emailVerificationExpires'];
+const HIDDEN = [
+  'password',
+  'failedLoginAttempts',
+  'sessions',
+  'passwordResetToken',
+  'passwordResetExpires',
+  'emailVerificationToken',
+  'emailVerificationExpires',
+  'twoFactorCode',
+  'twoFactorExpires',
+  'twoFactorAttempts',
+  'webauthnCredentials'
+];
 
 function cleanJson(schema) {
   schema.set('toJSON', {
