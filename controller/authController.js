@@ -36,9 +36,7 @@ function creerJeton(utilisateur) {
 function valider(schema, req, res) {
   const resultat = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (resultat.error) {
-    res.status(400).json({
-      message: resultat.error.details.map((detail) => detail.message).join(' ')
-    });
+    res.status(400).json({ message: 'Les données fournies sont invalides.' });
     return null;
   }
   return resultat.value;

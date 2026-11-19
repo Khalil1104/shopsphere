@@ -7,9 +7,10 @@ module.exports = (schema, source = 'body') => (req, res, next) => {
 
   if (error) {
     return res.status(400).json({
-      message: error.details.map((detail) => detail.message).join(' ')
+      message: 'Les données fournies sont invalides.'
     });
   }
-  req[source] = value;
+  req.validated = req.validated || {};
+  req.validated[source] = value;
   return next();
 };

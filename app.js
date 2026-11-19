@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -15,6 +16,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
