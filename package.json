@@ -1,0 +1,23 @@
+{
+  "name": "shopsphere-module6",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ShopSphere - avis, réclamations et support",
+  "main": "app.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "node-cron": "^3.0.3",
+    "twig": "^1.17.1"
+  }
+}
