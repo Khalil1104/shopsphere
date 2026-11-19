@@ -6,10 +6,15 @@
   "main": "app.js",
   "scripts": {
     "start": "node server.js",
+    "promote-admin": "node scripts/promoteAdmin.js",
+    "seed-demo": "node scripts/seedDemo.js",
     "test": "node --test"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
+  },
+  "overrides": {
+    "minimatch": "11.0.9"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,7 +22,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
-    "node-cron": "^3.0.3",
-    "twig": "^1.17.1"
+    "node-cron": "^4.6.0",
+    "twig": "^3.0.0"
   }
 }

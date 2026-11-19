@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Détail du ticket - ShopSphere</title>
+</head>
+<body data-page="ticket-detail" data-ticket-id="{{ ticketId }}">
+  <header>
+    <h1>Détail du ticket</h1>
+    <nav><a href="/admin/reviews">Avis</a> | <a href="/admin/tickets">Tickets</a> | <a href="/admin/stats">Statistiques</a></nav>
+  </header>
+  <form id="tokenForm">
+    <label for="token">Jeton administrateur</label>
+    <input id="token" type="password" autocomplete="off" required>
+    <button>Enregistrer le jeton</button>
+  </form>
+  <p id="message" role="status"></p>
+  <h2 id="subject"></h2>
+  <p id="metadata"></p>
+  <ul id="messages"></ul>
+  <form id="ticketUpdate">
+    <label>Priorité
+      <select name="priorite">
+        <option value="basse">Basse</option>
+        <option value="normale">Normale</option>
+        <option value="haute">Haute</option>
+      </select>
+    </label>
+    <label>Statut
+      <select name="statut">
+        <option value="ouvert">Ouvert</option>
+        <option value="en_cours">En cours</option>
+        <option value="resolu">Résolu</option>
+        <option value="ferme">Fermé</option>
+      </select>
+    </label>
+    <button>Enregistrer</button>
+  </form>
+  <form id="reply">
+    <label for="replyText">Réponse</label>
+    <textarea id="replyText" name="texte" maxlength="4000" required></textarea>
+    <button>Envoyer la réponse</button>
+  </form>
+  <button id="deleteTicket" type="button">Supprimer le ticket</button>
+  <script src="/admin.js" defer></script>
+</body>
+</html>

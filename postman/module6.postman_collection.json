@@ -1,0 +1,283 @@
+{
+  "info": {
+    "_postman_id": "82d2c3b4-89ef-4a80-a540-40e10ecfd205",
+    "name": "ShopSphere - Module 6",
+    "description": "Avis, réclamations et support. Renseigner productId, orderId et les identifiants d'administration avant l'exécution complète.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "tokenClient", "value": "" },
+    { "key": "tokenAdmin", "value": "" },
+    { "key": "clientEmail", "value": "client@example.test" },
+    { "key": "clientPassword", "value": "Motdepasse123" },
+    { "key": "adminEmail", "value": "" },
+    { "key": "adminPassword", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "reviewId", "value": "" },
+    { "key": "ticketId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Santé",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Authentification",
+      "item": [
+        {
+          "name": "POST inscription client",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"nom\":\"Client test\",\"email\":\"{{clientEmail}}\",\"motDePasse\":\"{{clientPassword}}\"}" },
+            "url": "{{baseUrl}}/api/auth/inscription"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', function () { pm.response.to.have.status(201); });", "if (pm.response.code === 201) pm.collectionVariables.set('tokenClient', pm.response.json().token);"] } }]
+        },
+        {
+          "name": "POST connexion client",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{clientEmail}}\",\"motDePasse\":\"{{clientPassword}}\"}" },
+            "url": "{{baseUrl}}/api/auth/connexion"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200 && pm.response.json().utilisateur.role === 'client') pm.collectionVariables.set('tokenClient', pm.response.json().token);"] } }]
+        },
+        {
+          "name": "POST connexion administrateur",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\",\"motDePasse\":\"{{adminPassword}}\"}" },
+            "url": "{{baseUrl}}/api/auth/connexion"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200 && pm.response.json().utilisateur.role === 'admin') pm.collectionVariables.set('tokenAdmin', pm.response.json().token);"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Avis",
+      "item": [
+        {
+          "name": "GET avis publics d'un produit",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/reviews/produit/{{productId}}?page=1&limit=20" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET mes avis",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }], "url": "{{baseUrl}}/api/reviews/mes-avis?page=1&limit=20" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST créer un avis",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"productId\":\"{{productId}}\",\"orderId\":\"{{orderId}}\",\"note\":5,\"commentaire\":\"Très bon produit.\"}" },
+            "url": "{{baseUrl}}/api/reviews"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', function () { pm.response.to.have.status(201); });", "if (pm.response.code === 201) pm.collectionVariables.set('reviewId', pm.response.json().avis._id);"] } }]
+        },
+        {
+          "name": "POST doublon avis - 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"productId\":\"{{productId}}\",\"orderId\":\"{{orderId}}\",\"note\":5,\"commentaire\":\"Avis en double.\"}" },
+            "url": "{{baseUrl}}/api/reviews"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 409', function () { pm.response.to.have.status(409); });"] } }]
+        },
+        {
+          "name": "PATCH modifier mon avis",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"note\":4,\"commentaire\":\"Après utilisation, toujours satisfait.\"}" },
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET liste admin avis",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }], "url": "{{baseUrl}}/api/reviews/admin?search=produit&statut=en_attente&sort=createdAt&order=desc&page=1&limit=20" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "PATCH modérer avis",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"statut\":\"valide\"}" },
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}/moderation"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET statistiques avis",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }], "url": "{{baseUrl}}/api/reviews/admin/stats" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "DELETE mon avis",
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }], "url": "{{baseUrl}}/api/reviews/{{reviewId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST avis invalide - 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"productId\":\"{{productId}}\",\"orderId\":\"{{orderId}}\",\"note\":8,\"commentaire\":\"Erreur attendue.\"}" },
+            "url": "{{baseUrl}}/api/reviews"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 400', function () { pm.response.to.have.status(400); });", "pm.test('message en français', function () { pm.expect(pm.response.json().message).to.be.a('string'); });"] } }]
+        },
+        {
+          "name": "GET mes avis sans jeton - 401",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/reviews/mes-avis" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401', function () { pm.response.to.have.status(401); });"] } }]
+        },
+        {
+          "name": "GET admin avis avec jeton client - 403",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }], "url": "{{baseUrl}}/api/reviews/admin" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 403', function () { pm.response.to.have.status(403); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "POST ouvrir un ticket",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"orderId\":\"{{orderId}}\",\"sujet\":\"Question sur ma commande\",\"texte\":\"Pouvez-vous me renseigner ?\"}" },
+            "url": "{{baseUrl}}/api/tickets"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', function () { pm.response.to.have.status(201); });", "if (pm.response.code === 201) pm.collectionVariables.set('ticketId', pm.response.json().ticket._id);"] } }]
+        },
+        {
+          "name": "GET mes tickets",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }], "url": "{{baseUrl}}/api/tickets/mes-tickets?page=1&limit=20" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET détail client ticket",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }], "url": "{{baseUrl}}/api/tickets/{{ticketId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST message client",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"texte\":\"Je précise ma demande.\"}" },
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}/messages"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', function () { pm.response.to.have.status(201); });"] } }]
+        },
+        {
+          "name": "GET liste admin tickets",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }], "url": "{{baseUrl}}/api/tickets/admin?search=commande&statut=ouvert&priorite=normale&sort=updatedAt&order=desc&page=1&limit=20" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET détail admin ticket",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }], "url": "{{baseUrl}}/api/tickets/admin/{{ticketId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST réponse admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"texte\":\"Nous vérifions votre commande.\"}" },
+            "url": "{{baseUrl}}/api/tickets/admin/{{ticketId}}/messages"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', function () { pm.response.to.have.status(201); });"] } }]
+        },
+        {
+          "name": "PATCH priorité et statut admin",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"priorite\":\"haute\",\"statut\":\"en_cours\"}" },
+            "url": "{{baseUrl}}/api/tickets/admin/{{ticketId}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET statistiques tickets",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }], "url": "{{baseUrl}}/api/tickets/admin/stats" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "PATCH fermer le ticket créé",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"statut\":\"ferme\"}" },
+            "url": "{{baseUrl}}/api/tickets/admin/{{ticketId}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST message ticket fermé - 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"texte\":\"Message refusé.\"}" },
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}/messages"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 409', function () { pm.response.to.have.status(409); });"] } }]
+        },
+        {
+          "name": "DELETE ticket admin",
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }], "url": "{{baseUrl}}/api/tickets/admin/{{ticketId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET ticket absent - 404",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tokenClient}}" }], "url": "{{baseUrl}}/api/tickets/ffffffffffffffffffffffff" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 404', function () { pm.response.to.have.status(404); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Vues Twig admin",
+      "item": [
+        {
+          "name": "GET liste des avis",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/reviews" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET liste des tickets",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/tickets" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET détail du ticket",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/tickets/{{ticketId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET statistiques",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/stats" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"] } }]
+        }
+      ]
+    }
+  ]
+}

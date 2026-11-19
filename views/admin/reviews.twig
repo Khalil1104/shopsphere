@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Modération des avis - ShopSphere</title>
+</head>
+<body data-page="reviews">
+  <header>
+    <h1>Modération des avis</h1>
+    <nav><a href="/admin/reviews">Avis</a> | <a href="/admin/tickets">Tickets</a> | <a href="/admin/stats">Statistiques</a></nav>
+  </header>
+  <form id="tokenForm">
+    <label for="token">Jeton administrateur</label>
+    <input id="token" type="password" autocomplete="off" required>
+    <button>Enregistrer le jeton</button>
+  </form>
+  <p id="message" role="status"></p>
+  <form id="filters">
+    <label>Recherche <input name="search" maxlength="100"></label>
+    <label>Statut
+      <select name="statut">
+        <option value="">Tous</option>
+        <option value="en_attente">En attente</option>
+        <option value="valide">Validé</option>
+        <option value="masque">Masqué</option>
+      </select>
+    </label>
+    <button>Rechercher</button>
+  </form>
+  <table>
+    <thead><tr><th>Produit</th><th>Client</th><th>Note</th><th>Commentaire</th><th>Statut</th><th>Actions</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <button id="previous" type="button">Précédent</button>
+  <span id="pagination"></span>
+  <button id="next" type="button">Suivant</button>
+  <script src="/admin.js" defer></script>
+</body>
+</html>
