@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const app = require('./app');
+const { planifierRappels } = require('./jobs/ticketReminders');
 
 const port = Number(process.env.PORT) || 3000;
 
@@ -12,6 +13,7 @@ async function start() {
   }
 
   await mongoose.connect(process.env.MONGODB_URI);
+  planifierRappels();
   app.listen(port, () => {
     console.log(`ShopSphere écoute sur le port ${port}.`);
   });
