@@ -1,0 +1,30 @@
+{% extends 'livraison/layout.twig' %}
+{% block title %}Suivi de colis{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h2>Calculer mes frais de livraison</h2>
+  <div class="row">
+    <select id="calcGouv"></select>
+    <input id="calcMontant" type="number" min="0" placeholder="Montant de la commande (TND)">
+    <button id="btnCalc">Calculer</button>
+  </div>
+  <p id="calcResult" class="muted"></p>
+</section>
+
+<section class="card">
+  <h2>Mes livraisons</h2>
+  <div id="myDeliveries" class="grid"></div>
+  <p id="noDeliveries" class="muted" style="display:none">Aucune livraison.</p>
+</section>
+
+<section class="card" id="trackingCard" style="display:none">
+  <h2>Suivi du colis</h2>
+  <div id="trackingInfo"></div>
+  <ol class="timeline" id="timeline"></ol>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/javascripts/livraison-client.js"></script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'livraison/layout.twig' %}
+{% block title %}Administration livraison{% endblock %}
+
+{% block content %}
+<section class="stats" id="stats"></section>
+
+<section class="card">
+  <h2>Recherche intelligente (IA)</h2>
+  <div class="row">
+    <input id="aiQuestion" style="flex:1;min-width:260px" placeholder="Ex : livraisons en retard à Sousse, ou celles de Sami Trabelsi">
+    <button id="btnAiSearch">Rechercher</button>
+  </div>
+  <p id="aiFilters" class="muted"></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Commande</th><th>Destination</th><th>Livreur</th><th>Statut</th><th>Prévue le</th></tr></thead>
+      <tbody id="aiRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Analyse intelligente (IA)</h2>
+  <div class="row"><button id="btnAiAnalyse">Générer l'analyse</button><span id="aiSource" class="muted"></span></div>
+  <div id="aiAnalyse"></div>
+</section>
+
+<section class="card">
+  <h2>Livraisons</h2>
+  <div class="row">
+    <input id="fSearch" placeholder="Ville, rue ou n° de commande">
+    <select id="fStatut">
+      <option value="">Tous les statuts</option>
+      <option value="en_preparation">En préparation</option>
+      <option value="expediee">Expédiée</option>
+      <option value="en_transit">En transit</option>
+      <option value="livree">Livrée</option>
+      <option value="echec">Échec</option>
+    </select>
+    <label class="check"><input type="checkbox" id="fRetard"> En retard</label>
+    <button id="btnFilter">Filtrer</button>
+    <button class="ghost" id="btnAlert">Alerter les retards</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Commande</th><th>Destination</th><th>Frais</th><th>Livreur</th>
+        <th>Statut</th><th>Prévue le</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="pager">
+    <button class="ghost" id="prev">Précédent</button>
+    <span id="pageInfo"></span>
+    <button class="ghost" id="next">Suivant</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Zones et frais</h2>
+  <div class="row">
+    <input id="zGouv" placeholder="Gouvernorat">
+    <input id="zFrais" type="number" min="0" placeholder="Frais">
+    <input id="zDelai" type="number" min="1" placeholder="Délai (jours)">
+    <input id="zSeuil" type="number" min="0" placeholder="Gratuit dès (TND)">
+    <button id="btnZone">Ajouter</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Gouvernorat</th><th>Frais</th><th>Délai</th><th>Gratuit dès</th><th></th></tr></thead>
+    <tbody id="zones"></tbody>
+  </table></div>
+</section>
+
+<section class="card">
+  <h2>Livreurs</h2>
+  <div class="row">
+    <input id="cNom" placeholder="Nom">
+    <input id="cTel" placeholder="Téléphone (8 chiffres)">
+    <input id="cMax" type="number" min="1" placeholder="Max livraisons / jour">
+    <button id="btnCourier">Ajouter</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Nom</th><th>Téléphone</th><th>Max / jour</th><th></th></tr></thead>
+    <tbody id="couriers"></tbody>
+  </table></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/javascripts/livraison-admin.js"></script>
+{% endblock %}

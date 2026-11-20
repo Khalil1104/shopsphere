@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Livraison{% endblock %} - ShopSphere</title>
+  <link rel="stylesheet" href="/stylesheets/livraison.css">
+</head>
+<body>
+<header>
+  <h1>ShopSphere · Livraison</h1>
+  <nav>
+    <a href="/livraison">Suivi client</a>
+    <a href="/admin/livraison">Administration</a>
+  </nav>
+</header>
+<main>
+  <section class="card tokenbar">
+    <input id="token" placeholder="Collez votre token JWT (client ou admin)">
+    <button id="saveToken">Enregistrer</button>
+  </section>
+  {% block content %}{% endblock %}
+</main>
+<div id="toast"></div>
+<script src="/javascripts/livraison-common.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
