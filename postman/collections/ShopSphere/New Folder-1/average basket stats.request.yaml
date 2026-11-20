@@ -1,0 +1,4 @@
+$kind: http-request
+url: /api/orders/stats/average-basket
+method: GET
+order: 6000

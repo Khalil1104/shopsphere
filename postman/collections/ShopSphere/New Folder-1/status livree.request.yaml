@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/orders/{{orderId}}/status"
+method: PATCH
+body:
+  type: json
+  content: '{"status":"livree"}'
+order: 4000

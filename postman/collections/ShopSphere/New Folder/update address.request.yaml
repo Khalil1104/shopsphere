@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/orders/{{orderId}}"
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \  \"address\": {\r
+
+    \    \"street\": \"Rue Sidi Yahia 2456\",\r
+
+    \    \"city\": \"Tunis\",\r
+
+    \    \"governorate\": \"Tunis\",\r
+
+    \    \"postalCode\": \"1000\",\r
+
+    \    \"phone\": \"20123456\"\r
+
+    \  }\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+order: 9000

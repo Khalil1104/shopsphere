@@ -1,0 +1,8 @@
+$kind: collection
+auth:
+  - id: b6d45a44-409b-445c-9b37-c580f21d24ec
+    type: bearer
+    name: Bearer Token
+    credentials:
+      token: "{{clientToken}}"
+order: 1000

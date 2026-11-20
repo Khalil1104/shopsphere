@@ -1,0 +1,9 @@
+$kind: collection
+name: New Folder
+auth:
+  - id: e045de60-9e89-41dd-a6e3-8d4a2dae196e
+    type: bearer
+    name: Bearer Token
+    credentials:
+      token: "{{adminToken}}"
+order: 2000

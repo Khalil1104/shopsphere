@@ -1,0 +1,14 @@
+$kind: collection
+variables:
+  - key: baseUrl
+    value: ""
+    disabled: false
+  - key: clientToken
+    secret: true
+    disabled: false
+  - key: adminToken
+    secret: true
+    disabled: false
+  - key: orderId
+    value: ""
+    disabled: false

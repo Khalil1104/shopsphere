@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/orders"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"address\": {\r
+
+    \    \"street\": \"12 rue de la Liberté\",\r
+
+    \    \"city\": \"Tunis\",\r
+
+    \    \"governorate\": \"Tunis\",\r
+
+    \    \"postalCode\": \"1000\",\r
+
+    \    \"phone\": \"20123456\"\r
+
+    \  }\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: pm.collectionVariables.set("orderId", pm.response.json()._id);
+    language: text/javascript
+order: 6000

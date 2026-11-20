@@ -1,0 +1,6 @@
+$kind: http-request
+url: /api/orders/stats/revenue?period=day
+method: GET
+queryParams:
+  period: day
+order: 5000

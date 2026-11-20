@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/orders/{{orderId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+order: 8000

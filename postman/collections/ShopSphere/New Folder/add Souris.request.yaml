@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/cart/items"
+method: POST
+body:
+  type: json
+  content: '{"productId":"6aff72eb061f8921b21677f4","quantity":1}'
+order: 2000
