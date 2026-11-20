@@ -1,7 +1,6 @@
 const express = require('express');
 const asyncHandler = require('../middlewares/asyncHandler');
-const { verifierAuthentification, verifierRole } = require('../middlewares/auth');
-const validate = require('../middlewares/validate');
+const { verifierAuthentification, verifierRole } = require('../middlewares/fakeAuth');const validate = require('../middlewares/validate');
 const controller = require('../controller/ticketController');
 
 const router = express.Router();

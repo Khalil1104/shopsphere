@@ -1,6 +1,6 @@
 const express = require('express');
 const asyncHandler = require('../middlewares/asyncHandler');
-const { verifierAuthentification, verifierRole } = require('../middlewares/auth');
+const { verifierAuthentification, verifierRole } = require('../middlewares/fakeAuth');
 const validate = require('../middlewares/validate');
 const controller = require('../controller/reviewController');
 
@@ -9,6 +9,7 @@ const { schemas } = controller;
 const pagination = validate(schemas.pageSchema, 'query');
 
 router.get('/produit/:productId', validate(schemas.productParams, 'params'), pagination, asyncHandler(controller.avisPublics));
+router.get('/produit/:productId/resume', validate(schemas.productParams, 'params'), asyncHandler(controller.resumeProduit));
 router.get('/mes-avis', verifierAuthentification, verifierRole('client'), pagination, asyncHandler(controller.mesAvis));
 router.post('/', verifierAuthentification, verifierRole('client'), validate(schemas.createSchema), asyncHandler(controller.creer));
 router.get('/admin/stats', verifierAuthentification, verifierRole('admin'), asyncHandler(controller.statistiques));

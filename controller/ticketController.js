@@ -1,6 +1,7 @@
 const Joi = require('joi');
 const Order = require('../models/Order');
 const Ticket = require('../models/Ticket');
+const { calculerPriorite, TRANSITIONS } = require('../services/ticketService');
 
 const identifiantSchema = Joi.string().hex().length(24).required().messages({
   'string.hex': 'L’identifiant est invalide.',
@@ -51,6 +52,7 @@ function echapperRegex(texte) {
   return texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Ouvre un ticket (client). Règle : la priorité est calculée automatiquement.
 async function creer(req, res) {
   const { orderId, sujet, texte } = req.validated.body;
   const commande = await Order.findOne({ _id: orderId, clientId: req.user.id });
@@ -63,6 +65,7 @@ async function creer(req, res) {
     clientId: req.user.id,
     orderId,
     sujet,
+    priorite: calculerPriorite(sujet, texte),
     messages: [{ auteurId: req.user.id, auteurRole: 'client', texte }],
     dernierMessageLe: maintenant,
     dernierAuteurRole: 'client'
@@ -95,6 +98,7 @@ async function voir(req, res) {
   return res.json({ ticket });
 }
 
+// Ajoute un message (client ou admin). Règles : refusé si fermé, changement de statut automatique.
 async function ajouterMessage(req, res) {
   const filtre = { _id: req.validated.params.ticketId };
   if (req.user.role === 'client') filtre.clientId = req.user.id;
@@ -117,6 +121,15 @@ async function ajouterMessage(req, res) {
   ticket.dernierMessageLe = maintenant;
   ticket.dernierAuteurRole = req.user.role;
   if (req.user.role === 'client') ticket.rappelEnvoyeLe = null;
+
+  // Règles : un admin qui répond prend en charge le ticket ; un client qui répond à un ticket résolu le rouvre
+  if (req.user.role === 'admin' && ticket.statut === 'ouvert') {
+    ticket.statut = 'en_cours';
+  }
+  if (req.user.role === 'client' && ticket.statut === 'resolu') {
+    ticket.statut = 'en_cours';
+  }
+
   await ticket.save();
   return res.status(201).json({ message: 'Message ajouté.', ticket });
 }
@@ -150,15 +163,25 @@ async function detailAdmin(req, res) {
   return res.json({ ticket });
 }
 
+// Modifie priorité et statut (admin). Règle : seules les transitions autorisées sont acceptées.
 async function modifierAdmin(req, res) {
-  const ticket = await Ticket.findByIdAndUpdate(
-    req.validated.params.ticketId,
-    { $set: req.validated.body },
-    { new: true, runValidators: true }
-  );
+  const ticket = await Ticket.findById(req.validated.params.ticketId);
   if (!ticket) {
     return res.status(404).json({ message: 'Ticket introuvable.' });
   }
+
+  const { statut, priorite } = req.validated.body;
+  if (statut && statut !== ticket.statut) {
+    if (!TRANSITIONS[ticket.statut].includes(statut)) {
+      return res.status(409).json({
+        message: `Impossible de passer de « ${ticket.statut} » à « ${statut} ».`
+      });
+    }
+    ticket.statut = statut;
+  }
+  if (priorite) ticket.priorite = priorite;
+
+  await ticket.save();
   return res.json({ message: 'Ticket modifié.', ticket });
 }
 
@@ -171,7 +194,8 @@ async function supprimerAdmin(req, res) {
 }
 
 async function statistiques(req, res) {
-  const [ouverts, delaiReponse] = await Promise.all([
+  const limite = new Date(Date.now() - 48 * 3600 * 1000);
+  const [ouverts, delaiReponse, parPriorite, parStatut, sansReponse48h] = await Promise.all([
     Ticket.countDocuments({ statut: { $in: ['ouvert', 'en_cours'] } }),
     Ticket.aggregate([
       { $project: { messages: 1 } },
@@ -211,13 +235,23 @@ async function statistiques(req, res) {
           ticketsAvecReponse: { $sum: 1 }
         }
       }
-    ])
+    ]),
+    Ticket.aggregate([{ $group: { _id: '$priorite', total: { $sum: 1 } } }]),
+    Ticket.aggregate([{ $group: { _id: '$statut', total: { $sum: 1 } } }]),
+    Ticket.countDocuments({
+      statut: { $in: ['ouvert', 'en_cours'] },
+      dernierAuteurRole: 'client',
+      dernierMessageLe: { $lt: limite }
+    })
   ]);
   const delai = delaiReponse[0] || { delaiMoyenMs: null, ticketsAvecReponse: 0 };
   return res.json({
     ticketsOuverts: ouverts,
     delaiMoyenReponseHeures: delai.delaiMoyenMs === null ? null : Math.round((delai.delaiMoyenMs / 3600000) * 100) / 100,
-    ticketsAvecReponse: delai.ticketsAvecReponse
+    ticketsAvecReponse: delai.ticketsAvecReponse,
+    parPriorite,
+    parStatut,
+    sansReponse48h
   });
 }
 

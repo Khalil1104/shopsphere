@@ -2,7 +2,7 @@
 
 ## Démarrer l'application
 
-Node.js 22 ou plus et MongoDB sont nécessaires. La connexion locale utilise par défaut `mongodb://127.0.0.1:27017/shopsphere`. Définissez `MONGODB_URI` uniquement si MongoDB utilise une autre adresse, et définissez `JWT_SECRET`, puis lancez :
+Node.js 22 ou plus et MongoDB sont nécessaires. Les paramètres locaux sont chargés depuis `.env` :
 
 ```powershell
 npm install
@@ -11,14 +11,7 @@ npm start
 
 Le serveur écoute sur le port `3000` par défaut. `PORT` permet de le modifier. Aucun fichier `.env` n'est créé ou modifié.
 
-Exemple PowerShell (variables limitées à la fenêtre courante) :
-
-```powershell
-$env:JWT_SECRET = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
-npm start
-```
-
-Pour remplacer l'URI locale : `$env:MONGODB_URI = "mongodb://serveur:27017/shopsphere"`. MongoDB doit être démarré avant `npm start`.
+Modifiez `MONGODB_URI` dans `.env` si MongoDB utilise une autre adresse. Le fichier est ignoré par Git. MongoDB doit être démarré avant `npm start`.
 
 ## Créer un compte administrateur
 
@@ -40,4 +33,10 @@ Importer `postman/module6.postman_collection.json`. Inscrire `clientEmail` une p
 
 ```powershell
 npm test
+```
+
+Pour tester les CRUD en vraie connexion MongoDB locale :
+
+```powershell
+npm run test:integration
 ```

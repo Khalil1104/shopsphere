@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const mongoose = require('mongoose');
 
 const uriLocale = 'mongodb://127.0.0.1:27017/shopsphere';

@@ -9,7 +9,7 @@
     { "key": "baseUrl", "value": "http://localhost:3000" },
     { "key": "tokenClient", "value": "" },
     { "key": "tokenAdmin", "value": "" },
-    { "key": "clientEmail", "value": "client@example.test" },
+    { "key": "clientEmail", "value": "client@example.com" },
     { "key": "clientPassword", "value": "Motdepasse123" },
     { "key": "adminEmail", "value": "" },
     { "key": "adminPassword", "value": "" },
